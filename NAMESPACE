@@ -1,0 +1,10 @@
+importFrom("grDevices", "rgb")
+  importFrom("graphics", "abline", "plot", "points", "polygon")
+  importFrom("methods", "new")
+  importFrom("stats", "approxfun", "density", "integrate", "pchisq")
+importFrom("stats", "qchisq")
+
+exportPattern("^[^\\.]")
+
+S3method(plot, fbst)
+S3method(summary, fbst)
