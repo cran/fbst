@@ -1,9 +1,12 @@
-2be2f629c827919635bd0fc1084ac297 *DESCRIPTION
-e03c353a9754d190fe3c594188631597 *NAMESPACE
-64feddaa61fe59a7664ae6506fe3990d *R/fbst.R
-294dfcae8ed118cd1846b7c235bd1f6a *build/partial.rdb
-87c63ff1e497a551d11f893b3caf96a8 *man/fbst-class.Rd
+cae235c57228e02210248a2f681338bf *DESCRIPTION
+377ff044710e34b08d9995f8963e30c1 *NAMESPACE
+6640eef6fd19a84f99193eaff2118770 *R/fbst.R
+70a064a148499fe37b1af99b5f4a8f05 *build/partial.rdb
+d32abe7056ddc09f2573470af5172ef5 *man/access.Rd
+2938a6c6ff552a4ad57fb3b24548809e *man/fbst-class.Rd
 43445c83292fc7b87ddb471f0c4ed625 *man/fbst-package.Rd
 2ac1c08dc314e6dfe4aa509441a77c40 *man/fbst.Rd
+046925d380f53f2cccd5fd9311f583cd *man/names.fbst.Rd
 385575bc7dcc358092803051d24e706d *man/plot.fbst.Rd
+72fa5242710d6d9bf86f8af1ab62e9eb *man/show.fbst.Rd
 4798bcf5bdba706e1da6a1a8007a1a45 *man/summary.fbst.Rd

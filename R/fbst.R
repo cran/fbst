@@ -66,23 +66,23 @@ fbst <- function(posteriorDensityDraws, nullHypothesisValue=0, FUN=NULL, par=NUL
   sev_H_0 = 1-pchisq(qchisq(barEv, df=dimensionTheta),df=dimensionTheta-dimensionNullset)
   
   if (is.null(FUN)){
-    priorString = "Flat"
+    refString = "Flat"
   } else {
-    priorString = "User-defined"
+    refString = "User-defined"
   }
   # return fbst object
-  res = new("fbst",posteriorDensityDraws=posteriorDensityDraws,
-                   postDensValues=postDensValues,
-                   postEffSizeSorted=postEffSizeSorted,
-                   densZero=densZero,
-                   indices=indices,
-                   nullHypothesisValue=nullHypothesisValue,
-                   prior=priorString,
-                   dimensionTheta=dimensionTheta,
-                   dimensionNullset=dimensionNullset,
-                   eValue=barEv,
-                   pValue=p_value_ev_H_0,
-                   sev_H_0 = sev_H_0)
+  res = new("fbst", data = list(posteriorDensityDraws=posteriorDensityDraws,
+                                postEffSizeSorted=postEffSizeSorted,
+                                densZero=densZero,
+                                postDensValues=postDensValues,
+                                indices=indices,
+                                nullHypothesisValue=nullHypothesisValue,
+                                referenceFunction=refString,
+                                dimensionTheta=dimensionTheta,
+                                dimensionNullset=dimensionNullset,
+                                eValue=barEv,
+                                pValue=p_value_ev_H_0,
+                                sev_H_0 = sev_H_0))
   res
 }
 
@@ -92,37 +92,24 @@ fbst <- function(posteriorDensityDraws, nullHypothesisValue=0, FUN=NULL, par=NUL
 #'
 #' Stores the results of a Full Bayesian Significance Test
 #'
-#' @slot posteriorDensityDraws A numeric (vector) of posterior MCMC parameter draws.
-#' @slot postEffSizeSorted A numeric (vector) of sorted posterior MCMC parameter draws.
-#' @slot densZero A numeric storing the surprise function value at the sharp null hypothesis parameter value.
-#' @slot postDensValues A numeric (vector) of posterior density values.
-#' @slot indices A numeric (vector) storing indices for deciding which values are located inside the tangential set.
-#' @slot nullHypothesisValue A numeric storing the sharp null hypothesis parameter value.
-#' @slot prior A character holding the name of the reference function used.
-#' @slot dimensionTheta A numeric holding the dimension of the parameter space.
-#' @slot dimensionNullset A numeric holding the dimension of the null set.
-#' @slot eValue A numeric holding the Bayesian evidence against the sharp null hypothesis, the e-value.
-#' @slot pValue A numeric holding the p-value associated with the Bayesian e-value in favour of the sharp null hypothesis.
-#' @slot sev_H_0 A numeric holding the standardized e-value as a replacement of the frequentist p-value
+#' @slot data A named list for storing the user-accessible data of an fbst object
+#' posteriorDensityDraws A numeric (vector) of posterior MCMC parameter draws.
+#' postEffSizeSorted A numeric (vector) of sorted posterior MCMC parameter draws.
+#' densZero A numeric storing the surprise function value at the sharp null hypothesis parameter value.
+#' postDensValues A numeric (vector) of posterior density values.
+#' indices A numeric (vector) storing indices for deciding which values are located inside the tangential set.
+#' nullHypothesisValue A numeric storing the sharp null hypothesis parameter value.
+#' referenceFunction A character holding the name of the reference function used.
+#' dimensionTheta A numeric holding the dimension of the parameter space.
+#' dimensionNullset A numeric holding the dimension of the null set.
+#' eValue A numeric holding the Bayesian evidence against the sharp null hypothesis, the e-value.
+#' pValue A numeric holding the p-value associated with the Bayesian e-value in favour of the sharp null hypothesis.
+#' sev_H_0 A numeric holding the standardized e-value as a replacement of the frequentist p-value
 #' @name fbst-class
 #' @rdname fbst-class
 #' @export
-setClass(Class="fbst",
-         slots =c(
-           posteriorDensityDraws="numeric",
-           postEffSizeSorted="numeric",
-           densZero="numeric",
-           postDensValues="numeric",
-           indices="numeric",
-           nullHypothesisValue="numeric",
-           prior="character",
-           dimensionTheta="numeric",
-           dimensionNullset="numeric",
-           eValue="numeric",
-           pValue="numeric",
-           sev_H_0="numeric"
-         ),
-         prototype = NULL,         
+setClass("fbst", representation(data="list"),
+         prototype = NULL,
          validity = function(object) return(TRUE)
 )
 
@@ -131,14 +118,14 @@ setClass(Class="fbst",
 #' @usage \\method{plot}{fbst}(x, ...)
 #' @export
 plot.fbst <- function(x, ..., leftBoundary= -100, rightBoundary = 100){
-  postDens <- approxfun(x=x@postEffSizeSorted,y=x@postDensValues, rule = 2)
+  postDens <- approxfun(x=x$postEffSizeSorted,y=x$postDensValues, rule = 2)
   # prior-posterior plot
-  plot(x@postEffSizeSorted,x@postDensValues,ty="l",lty=1,xlim=c(min(x@postEffSizeSorted),max(x@postEffSizeSorted)),
+  plot(x$postEffSizeSorted,x$postDensValues,ty="l",lty=1,xlim=c(min(x$postEffSizeSorted),max(x$postEffSizeSorted)),
        main="",ylab="surprise function density",xlab="Parameter")
   
   # tangential area
-  from.z <- x@postEffSizeSorted[min(x@indices)]
-  to.z <- x@postEffSizeSorted[max(x@indices)]
+  from.z <- x$postEffSizeSorted[min(x$indices)]
+  to.z <- x$postEffSizeSorted[max(x$indices)]
   
   S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
   S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
@@ -146,7 +133,7 @@ plot.fbst <- function(x, ..., leftBoundary= -100, rightBoundary = 100){
   
   # left tail (null) area
   from.z <- leftBoundary
-  to.z <- x@postEffSizeSorted[min(x@indices)]
+  to.z <- x$postEffSizeSorted[min(x$indices)]
   
   # plot(postEffSizeSorted,postDensValues,ty="l", main = "", xlab = expression(paste("p(", delta, "| x)")), ylab = "Density")
   S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
@@ -154,15 +141,15 @@ plot.fbst <- function(x, ..., leftBoundary= -100, rightBoundary = 100){
   polygon(S.x,S.y, col = rgb(red = 1, green = 0, blue = 0, alpha = 1))
   
   # right tail (null) area
-  from.z <- x@postEffSizeSorted[max(x@indices)]
+  from.z <- x$postEffSizeSorted[max(x$indices)]
   to.z <- rightBoundary
   S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
   S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
   polygon(S.x,S.y, col = rgb(red = 1, green = 0, blue = 0, alpha = 1))
   
   # null density value and separating line for tangential set
-  points(x=0,y=x@densZero,col="blue",pch=19)
-  abline(h=x@densZero,lty=2,lwd=1,col="blue")
+  points(x=0,y=x$densZero,col="blue",pch=19)
+  abline(h=x$densZero,lty=2,lwd=1,col="blue")
 }
 
 #' Print summary of an object of class fbst
@@ -170,9 +157,39 @@ plot.fbst <- function(x, ..., leftBoundary= -100, rightBoundary = 100){
 #' @export
 summary.fbst <- function(object, ...){
   cat("Full Bayesian Significance Test for testing a sharp hypothesis against its alternative:\n")
-  cat("Prior:", object@prior, "\n")
-  cat("Testing Hypothesis H_0:Parameter=", object@nullHypothesisValue, "against its alternative H_1\n")
-  cat("Bayesian e-value against H_0:", object@eValue, "\n")
-  cat("p-value associated with the Bayesian e-value in favour of the null hypothesis:", object@pValue, "\n")
-  cat("Standardized e-value:", object@sev_H_0, "\n")
+  cat("Reference function:", object$referenceFunction, "\n")
+  cat("Testing Hypothesis H_0:Parameter=", object$nullHypothesisValue, "against its alternative H_1\n")
+  cat("Bayesian e-value against H_0:", object$eValue, "\n")
+  cat("p-value associated with the Bayesian e-value in favour of the null hypothesis:", object$pValue, "\n")
+  cat("Standardized e-value:", object$sev_H_0, "\n")
 }
+
+
+#' Show method for an object of class fbst
+#' @usage \\method{show}{fbst}(object)
+#' @export
+show.fbst <- function(object){
+  cat("FBST for testing H_0:Parameter =", object$nullHypothesisValue, "against its alternative H_1\n")
+  cat("Reference function:", object$referenceFunction, "\n")
+  cat("Bayesian e-value against H_0:", object$eValue, "\n")
+}
+
+
+
+#' Access results stored in the data slot of an object of class fbst
+#' @usage \\method{$}{fbst}(object, ...)
+#' @export
+setMethod('$', signature="fbst",
+          definition=function(x, name) {
+            return_value = x@data[[name]]
+            names(return_value) = name
+            return(return_value)}
+)
+
+#' Get names of the data slot of an object of class fbst
+#' @usage \\method{names}{fbst}(object, ...)
+#' @export
+names.fbst <- function(x){
+  names(x@data)
+}
+

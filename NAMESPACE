@@ -8,3 +8,4 @@ exportPattern("^[^\\.]")
 
 S3method(plot, fbst)
 S3method(summary, fbst)
+S3method(names, fbst)
