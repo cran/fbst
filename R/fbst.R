@@ -50,7 +50,7 @@ fbst <- function(posteriorDensityDraws, nullHypothesisValue=0, FUN=NULL, par=NUL
   m_0 = postDens(nullHypothesisValue)
   M_0 = bayestestR::map_estimate(postEffSizeSorted)[1]
   d_0 = abs((m_0-M_0)^2)
-  p_value_ev_H_0 = pchisq(d_0, df=dimensionTheta, lower.tail = TRUE)
+  p_value_ev_H_0 = pchisq(d_0, df=dimensionNullset, lower.tail = TRUE)
   
   # Get indices of posterior draws belonging to the tangential set (flat prior)
   indices = which(postDensValues > densZero)
@@ -160,7 +160,6 @@ summary.fbst <- function(object, ...){
   cat("Reference function:", object$referenceFunction, "\n")
   cat("Testing Hypothesis H_0:Parameter=", object$nullHypothesisValue, "against its alternative H_1\n")
   cat("Bayesian e-value against H_0:", object$eValue, "\n")
-  cat("p-value associated with the Bayesian e-value in favour of the null hypothesis:", object$pValue, "\n")
   cat("Standardized e-value:", object$sev_H_0, "\n")
 }
 
