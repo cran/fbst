@@ -50,7 +50,9 @@ fbst <- function(posteriorDensityDraws, nullHypothesisValue=0, FUN=NULL, par=NUL
   m_0 = postDens(nullHypothesisValue)
   M_0 = bayestestR::map_estimate(postEffSizeSorted)[1]
   d_0 = abs((m_0-M_0)^2)
-  p_value_ev_H_0 = pchisq(d_0, df=dimensionNullset, lower.tail = TRUE)
+  # WARNING: The solution given in the 2008 paper is wrong. ev can be approximated as the upper tail of the 
+  # cumulative chi_k^2 distribution function starting from ||m-M||^2
+  p_value_ev_H_0 = 1-pchisq(d_0, df=dimensionNullset, lower.tail = TRUE)
   
   # Get indices of posterior draws belonging to the tangential set (flat prior)
   indices = which(postDensValues > densZero)
@@ -59,6 +61,13 @@ fbst <- function(posteriorDensityDraws, nullHypothesisValue=0, FUN=NULL, par=NUL
   if (length(indices)>0){ # is there at least one posterior density value in the tangential set?
     barEv = integrate(postDens, lower = postEffSizeSorted[min(indices)], upper = postEffSizeSorted[max(indices)])$value
   } else { # tangential set is empty, Lebesgue-integral over it is zero then
+    barEv = 0
+  }
+  
+  if(barEv > 1){ # if integrate function makes some rounding errors set e-value against H_0 to 1, to avoid the quantile functions below to produce errors like NaN
+    barEv =1
+  }
+  if(barEv < 0){
     barEv = 0
   }
   
@@ -114,6 +123,137 @@ setClass("fbst", representation(data="list"),
 )
 
 
+
+#' Conduct the Full Bayesian Evidence Test and return an fbet class object.
+#'
+#' @method 
+#' @export
+#' @examples
+fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
+  # Sort posterior draws ascending
+  postEffSizeSorted = sort(posteriorDensityDraws, decreasing = FALSE)
+  # Construct density of posterior effect size
+  postDens <- approxfun(density(postEffSizeSorted), rule = 2) # rule = 2 means: use closest data extreme for NA values produced
+  
+  # Calculate surprise function values for all posterior effect size samples
+  if(!is.null(FUN)){ # reference function provided
+    par[[1]] = rep(par[[1]],length(posteriorDensityDraws))
+    par[[2]] = rep(par[[2]],length(posteriorDensityDraws))
+    par = c(list(x=postEffSizeSorted),par)
+    
+    postDensValues = postDens(postEffSizeSorted)/do.call(FUN, par) # user defined reference function
+  } else { # no reference function provided, then use flat improper prior as reference function
+    postDensValues = postDens(postEffSizeSorted)/1 # flat reference function
+  }
+  
+  # Compute indices of posterior parameter draws which belong to the expanded tangential set \tilde{T}(\nu)
+  indices = which(postDensValues >= nu)
+  
+  # Get smallest and largest values as the boundaries of the evidence interval
+  if(length(indices)>0){
+    evidenceInterval = c(postEffSizeSorted[min(indices)],postEffSizeSorted[max(indices)])
+  } else { # expanded tangential set is empty
+    evidenceInterval = "Empty set"
+  }
+  # Calculate the Bayesian evidence value for the interval null hypothesis
+  if (length(indices)>0 && max(evidenceInterval[1],interval[1])<min(evidenceInterval[2],interval[2])){ # is there at least one posterior density value in the expanded tangential set?
+    # integrate over intersection between the evidence interval and rope, indices [1] and [2] denote the lower and upper bounds of the evidence interval and rope
+    bayesianEvidenceValueIntervalNullHyp = integrate(postDens, lower = max(evidenceInterval[1],interval[1]), upper = min(evidenceInterval[2],interval[2]))$value
+  } else { # expanded tangential set is empty, Lebesgue-integral over an empty set is zero then
+    bayesianEvidenceValueIntervalNullHyp = 0
+  }
+  # Calculate the Bayesian evidence value for the alternative hypothesis
+  bayesianEvidenceValueAlternative = 0
+  if(evidenceInterval[1]<interval[1] && evidenceInterval[2]<interval[1]){
+    # intersection of Bayesian evidence interval and alternative hypothesis (left part)
+    from.z <- evidenceInterval[1]
+    to.z <- evidenceInterval[2]
+    
+    bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z)$value
+  }
+  
+  if(evidenceInterval[1]>interval[2] && evidenceInterval[2]>interval[2]){
+    # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+    from.z <- evidenceInterval[1]
+    to.z <- evidenceInterval[2]
+    
+    bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z)$value
+  }
+  
+  if(evidenceInterval[1]<interval[1] && evidenceInterval[2]>interval[1]){
+    # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+    from.z <- evidenceInterval[1]
+    to.z <- interval[1]
+    
+    bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z)$value
+  }
+  
+  if(evidenceInterval[1]<interval[2] && evidenceInterval[2]>interval[2]){
+    # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+    from.z <- interval[2]
+    to.z <- evidenceInterval[2]
+    
+    bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z)$value
+  }
+  
+  # rounding errors
+  if(bayesianEvidenceValueIntervalNullHyp > 1){
+    bayesianEvidenceValueIntervalNullHyp = 1
+  }
+  if(bayesianEvidenceValueAlternative > 1){
+    bayesianEvidenceValueAlternative = 1
+  }
+  
+  
+  if (is.null(FUN)){
+    refString = "Flat"
+  } else {
+    refString = "User-defined"
+  }
+  
+  res = new("fbet", data=list(
+    posteriorDensityDraws = posteriorDensityDraws,
+    posteriorDensityDrawsSorted = postEffSizeSorted,
+    postDensValues = postDensValues,
+    indices = indices,
+    interval = interval,
+    referenceFunction = refString,
+    nu = nu,
+    evidenceInterval = evidenceInterval, 
+    eValueH0 = bayesianEvidenceValueIntervalNullHyp,
+    eValueH1 = bayesianEvidenceValueAlternative))
+  res
+}
+
+
+
+
+#' fbet class
+#'
+#' Stores the results of a Full Bayesian Evidence Test
+#'
+#' @slot data A named list for storing the user-accessible data of an fbet object
+#' posteriorDensityDraws A numeric (vector) of posterior MCMC parameter draws.
+#' posteriorDensityDrawsSorted A numeric (vector) of sorted posterior MCMC parameter draws.
+#' postDensValues A numeric (vector) of posterior density values.
+#' indices A numeric (vector) storing indices for deciding which values are located inside the tangential set.
+#' interval A numeric (vector) storing the boundaries of the interval null hypothesis (ROPE).
+#' referenceFunction A character holding the name of the reference function used.
+#' nu Evidence-threshold used for computation of the evidence interval
+#' evidenceInterval A numeric (vector) storing the lower and upper boundaries of the resulting Bayesian evidence interval
+#' eValueH0 Bayesian evidence value for the interval null hypothesis
+#' eValueH1 Bayesian evidence value for the alternative hypothesis
+#' @name fbet-class
+#' @rdname fbet-class
+#' @export
+setClass("fbet", representation(data="list"),
+         prototype = NULL,
+         validity = function(object) return(TRUE)
+)
+
+
+
+
 #' plot object of class fbst
 #' @usage \\method{plot}{fbst}(x, ...)
 #' @export
@@ -152,16 +292,117 @@ plot.fbst <- function(x, ..., leftBoundary= -100, rightBoundary = 100){
   abline(h=x$densZero,lty=2,lwd=1,col="blue")
 }
 
+
+
+#' plot object of class fbet
+#' @usage \\method{plot}{fbet}(x, ...)
+#' @export
+plot.fbet <- function(x, ..., leftBoundary= -100, rightBoundary = 100){
+  postDens <- approxfun(x=x$posteriorDensityDrawsSorted,y=x$postDensValues, rule = 2)
+  # prior-posterior plot
+  plot(x$posteriorDensityDrawsSorted,x$postDensValues,ty="l",lty=1,xlim=c(min(x$posteriorDensityDrawsSorted),max(x$posteriorDensityDrawsSorted)),
+       main="",ylab="surprise function density",xlab="Parameter")
+  
+  # Visualize interval hypothesis
+  abline(v=x$interval[1],lty=2,lwd=1,col="blue")
+  abline(v=x$interval[2],lty=2,lwd=1,col="blue")
+  
+  # Visualize Bayesian evidence interval
+  abline(v=x$evidenceInterval[1],lty=1,lwd=1,col="blue")
+  abline(v=x$evidenceInterval[2],lty=1,lwd=1,col="blue")
+  
+  # intersection of Bayesian evidence interval and interval null hypothesis
+  if (max(x$evidenceInterval[1],x$interval[1])<min(x$evidenceInterval[2],x$interval[2])){
+    # intersection between the evidence interval and rope, indices [1] and [2] denote the lower and upper bounds of the evidence interval and rope
+    from.z <- max(x$evidenceInterval[1],x$interval[1])
+    to.z <- min(x$evidenceInterval[2],x$interval[2])
+    
+    S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
+    S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
+    polygon(S.x,S.y, col = rgb(red = 0, green = 0.8, blue = 1, alpha = 1))
+  }
+
+  # intersection of Bayesian evidence interval and alternative hypothesis
+  if(x$evidenceInterval[1]<x$interval[1] && x$evidenceInterval[2]<x$interval[1]){
+    # intersection of Bayesian evidence interval and alternative hypothesis (left part)
+    from.z <- min(x$evidenceInterval[1],x$interval[1])
+    to.z <- min(x$evidenceInterval[2],x$interval[1])
+    
+    if(from.z < to.z){
+      S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
+      S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
+      polygon(S.x,S.y, col = rgb(red = 1, green = 0, blue = 0, alpha = 1))
+    }
+  }
+  
+  if(x$evidenceInterval[1]>x$interval[2] && x$evidenceInterval[2]>x$interval[2]){
+  # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+    from.z <- x$evidenceInterval[1]
+    to.z <- x$evidenceInterval[2]
+    
+    if(from.z < to.z){
+      S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
+      S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
+      polygon(S.x,S.y, col = rgb(red = 1, green = 0, blue = 0, alpha = 1))
+    }
+  }
+  
+  if(x$evidenceInterval[1]<x$interval[1] && x$evidenceInterval[2]>x$interval[1]){
+    # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+    from.z <- x$evidenceInterval[1]
+    to.z <- x$interval[1]
+
+    if(from.z < to.z){
+      S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
+      S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
+      polygon(S.x,S.y, col = rgb(red = 1, green = 0, blue = 0, alpha = 1))
+    }
+  }
+  
+  if(x$evidenceInterval[1]<x$interval[2] && x$evidenceInterval[2]>x$interval[2]){
+    # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+    from.z <- x$interval[2]
+    to.z <- x$evidenceInterval[2]
+
+    if(from.z < to.z){
+      S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
+      S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
+      polygon(S.x,S.y, col = rgb(red = 1, green = 0, blue = 0, alpha = 1))
+    }
+  }
+  
+  # separating line for evidence-threshold nu used for the Bayesian evidence interval
+  abline(h=x$nu,lty=2,lwd=1,col="black")
+  
+  graphics::legend("topleft", legend=c("surprise function", "Null hypothesis", "Evidence Interval", "Evidence threshold"),
+         col=c("black", "blue", "blue", "black"), lty=c(1,2,1,2), cex=1)
+}
+
+
+
+
 #' Print summary of an object of class fbst
 #' @usage \\method{summary}{fbst}(object, ...)
 #' @export
 summary.fbst <- function(object, ...){
   cat("Full Bayesian Significance Test for testing a sharp hypothesis against its alternative:\n")
   cat("Reference function:", object$referenceFunction, "\n")
-  cat("Testing Hypothesis H_0:Parameter=", object$nullHypothesisValue, "against its alternative H_1\n")
+  cat("Hypothesis H_0:Parameter=", object$nullHypothesisValue, "against its alternative H_1\n")
   cat("Bayesian e-value against H_0:", object$eValue, "\n")
   cat("Standardized e-value:", object$sev_H_0, "\n")
 }
+
+#' Print summary of an object of class fbet
+#' @usage \\method{summary}{fbet}(object, ...)
+#' @export
+summary.fbet <- function(object, ...){
+  cat("Full Bayesian Evidence Test:\n")
+  cat("Reference function:", object$referenceFunction, "\n")
+  cat("Testing Hypothesis H_0:=[", object$interval[1] ,object$interval[1], "]\n")
+  cat("Bayesian e-value in favour of H_0:", object$eValueH0, "\n")
+  cat("Bayesian e-value against H_0:", object$eValueH1, "\n")
+}
+
 
 
 #' Show method for an object of class fbst
@@ -171,6 +412,15 @@ show.fbst <- function(object){
   cat("FBST for testing H_0:Parameter =", object$nullHypothesisValue, "against its alternative H_1\n")
   cat("Reference function:", object$referenceFunction, "\n")
   cat("Bayesian e-value against H_0:", object$eValue, "\n")
+}
+
+#' Show method for an object of class fbet
+#' @usage \\method{show}{fbet}(object)
+#' @export
+show.fbet <- function(object){
+  cat("FBET for testing H_0:Parameter in", object$interval, "against its alternative H_1\n")
+  cat("Reference function:", object$referenceFunction, "\n")
+  cat("Bayesian e-value in favour of H_0:", object$eValueH0, "\n")
 }
 
 
@@ -185,10 +435,31 @@ setMethod('$', signature="fbst",
             return(return_value)}
 )
 
+#' Access results stored in the data slot of an object of class fbet
+#' @usage \\method{$}{fbet}(object, ...)
+#' @export
+setMethod('$', signature="fbet",
+          definition=function(x, name) {
+            return_value = x@data[[name]]
+            names(return_value) = name
+            return(return_value)}
+)
+
+
+
+
 #' Get names of the data slot of an object of class fbst
 #' @usage \\method{names}{fbst}(object, ...)
 #' @export
 names.fbst <- function(x){
   names(x@data)
 }
+
+#' Get names of the data slot of an object of class fbet
+#' @usage \\method{names}{fbet}(object, ...)
+#' @export
+names.fbet <- function(x){
+  names(x@data)
+}
+
 

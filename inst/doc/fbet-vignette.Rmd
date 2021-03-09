@@ -1,0 +1,150 @@
+---
+title: "Bayesian hypothesis testing with the Full Bayesian Evidence Test"
+output: rmarkdown::html_vignette
+bibliography: library.bib
+vignette: >
+  %\VignetteIndexEntry{Bayesian hypothesis testing with the Full Bayesian Evidence Test}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(fbst)
+```
+
+
+# Introduction
+This vignette explains how to use the Full Bayesian Evidence Test (FBET) for Bayesian hypothesis testing of an interval hypothesis against its alternative via the Bayesian evidence value, which includes the e-value of the FBST as a special (limiting) case.
+
+## Theory behind the FBET and Bayesian evidence value
+While the Full Bayesian Significance Test (FBST) used the e-value to quantify the evidence against a precise hypothesis, in a variety of contexts the assumption of a precise point-null hypothesis is unrealistic. Often, for example in biomedical research or the cognitive sciences the assumption of an interval hypothesis is more appropriate. The Full Bayesian Evidence Test (FBET) generalizes the Pereira-Stern-theory which underpins the FBST and allows for testing interval hypotheses. The FBET can be used with any standard parametric model, where $\theta \in \Theta \subseteq \mathbb{R}^p$ is a (possibly vector-valued) parameter of interest, $p(x|\theta)$ is the likelihood and $p(\theta)$ is the density of the prior distribution $\mathbb{P}_{\vartheta}$ for the parameter $\theta$.
+
+### The Bayesian evidence interval
+First, the Bayesian evidence interval is required for the FBET. Let $s(\theta):=\frac{p(\theta|x)}{r(\theta)}$ be the surprise function of the Pereira-Stern FBST with a given reference function $r(\theta)$ and tangential set $\overline{T}(\nu):=\{\theta \in \Theta|s(\theta)> \nu \}$ to the null hypothesis $H_0:\theta=\theta_0$. The expanded tangential set is defined as $\tilde{\overline{T}}(\nu)=\{\theta \in \Theta|s(\theta)\geq \nu \}$, which in contrast to $\overline{T}(\nu)$ also includes the parameter values $\theta$ for which $s(\theta)= \nu$.
+    
+The Bayesian evidence interval $\text{EI}_r(\nu)$ with reference function $r(\theta)$ to level $\nu$ includes all parameter values $\theta$ for which $\theta \in \tilde{\overline{T}}(\nu)$.
+
+It can be shown that the Bayesian evidence interval includes standard HPD intervals, support intervals and credible intervals as special cases.
+
+To unify Bayesian interval estimation and hypothesis testing based on the $\text{EI}_{r}(\nu)$ via an interval hypothesis (or the region of practical equivalence (ROPE)), the \textit{Bayesian evidence value} is introduced, which is associated with a Bayesian evidence interval: For a given evidence interval $\text{EI}_r(\nu)$ with reference function $r(\theta)$ to level $\nu$, the Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ to a ROPE $R$ for the null hypothesis $H_0$ is given as
+    \begin{align}
+        \text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0):=\int_{\text{EI}_r(\nu) \cap R} p(\theta|x)d\theta 
+    \end{align}
+    The corresponding Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ to a ROPE $R$ for the alternative hypothesis $H_1$ is given as
+    \begin{align}
+        \text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1):=\int_{\text{EI}_r(\nu) \cap R^c} p(\theta|x)d\theta 
+    \end{align}
+    where $R^c$ is the set complement of the ROPE $R$. The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ is the integral of the posterior density $p(\theta|x)$ over the intersection of the evidence interval $\text{EI}_r(\nu)$ with the ROPE (or interval hypothesis) $R$. This means that the evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ is the integral over the evidence interval $\text{EI}_r(\nu)$ restricted to the ROPE (or interval hypothesis) $R$ around the null value of $H_0:\theta=\theta_0$.
+The Bayesian evidence value can also be called *generalised e-value*, as it can be shown to recover the e-value of the FBST as a special case.
+
+The Bayesian evidence value depends on three quantities:
+
+* The ROPE $R:=[a,b]$, $a<b$ which includes the null value $\theta_0$ of $H_0:\theta=\theta_0$, that is $\theta_0 \in R$. Thus, the ROPE $R$ can be interpreted as an interval hypothesis $H_0:=[a,b]$ around the null value $\theta_0$.
+* the reference function $r(\theta)$ which is used for construction of the Bayesian evidence interval $\text{EI}_r(\nu)$
+* and the evidence-threshold $\nu$ used for deciding which values are included in the Bayesian evidence interval $\text{EI}_r(\nu)$
+
+The evidence value of course also depends on the prior distribution $p(\theta)$, because the Bayesian evidence interval depends on the posterior distribution, which itself depends on the prior distribution $p(\theta)$. Of course, the Bayesian evidence value also depends on the data $x$ observed.
+
+From a hypothesis testing perspective a ROPE $R$ is interpreted as an interval hypothesis which includes the precise null value of the hypothesis $H_0$. Thus, from this point of view one could also omit the superscript $R$ in $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ and define the Bayesian evidence value directly for interval hypotheses $H_0 \in \Theta$ as
+\begin{align*}
+        \text{Ev}_{\text{EI}_r(\nu)}(H_0):=\int_{\text{EI}_r(\nu) \cap H_0} p(\theta|x)d\theta 
+\end{align*}
+
+
+
+## Running the FBET
+To run the FBET, a posterior distribution is required, which can be obtained as in any standard Bayesian workflow:
+
+1. Specify a joint distribution for the outcome(s) and all relevant parameters. Typically, this takes the form of a marginal prior distribution for the parameters multiplied by a likelihood for the outcome(s) conditional on the parameters. This joint distribution is proportional to a posterior distribution of the parameters conditional on the observed data.
+1. Run a Markov-Chain-Monte-Carlo (MCMC) algorithm to draw samples from posterior distribution.
+1. Evaluate the model fit with regard to the data (e.g. via posterior predictive checks) and possibly revise the model.
+
+Based on the sample of posterior draws, the FBET can be performed as follows:
+1. Specify a null hypothesis value $\theta_0$ for the precise null hypothesis $H_0:\theta=\theta_0$.
+1. Specify a ROPE $R$ around the null hypothesis value $\theta_0$ based on prior subject-domain knowledge, pilot studies or by deciding for minimally relevant effect sizes that can be regarded as scientifically meaningful.
+1. Specify a reference function $r(\theta)$ which is used to build the surprise function $$s(\theta):=\frac{p(\theta|x)}{r(\theta)}$$ Typical choices include a flat reference function $r(\theta)=1$ which implies the surprise function becomes the posterior $p(\theta|x)$, or the density $p(\theta)$ of a prior distribution $\mathbb{P}_{\vartheta}$ for the parameter $\theta$. In the latter case, the surprise function $s(\theta)$ quantifies the ratio of posterior to prior, and parameter values $\theta$ with $s(\theta)\geq 1$ can be interpreted as being corroborated by observing the data $x$. Parameter values $\theta$ with $s(\theta)<1$ can be interpreted as not being corroborated by observing the data $x$.
+1. Select the evidence-threshold $\nu \geq 0$ and calculate the resulting Bayesian evidence interval $\text{EI}_r(\nu)$ for the reference function $r(\theta)$ and threshold $\nu$. The Bayesian evidence interval $\text{EI}_r(\nu)$ includes only parameter values $\theta \in \Theta$ which have been corroborated by a factor $\nu$ compared to the reference function $r(\theta)$, that is, parameter values $\theta$ for which the evidence is at least $\nu$.
+1. Run the FBET and compute the Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0$, and the Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1$.
+
+Note that the notion of evidence associated with the Bayesian evidence interval $\text{EI}_r(\nu)$ stems from the relationship to the Bayes factor: Parameter values $\tilde{\theta} \in $\text{EI}_r(\nu)$ fulfill the condition $s(\tilde{\theta})\geq \nu$, which is equivalent to $p(\tilde{\theta}|x)/r(\tilde{\theta})\geq \nu$. Whenever the reference function $r(\theta)$ is chosen as the model's prior distribution $p(\theta)$ for the parameter $\theta$, for the values $\tilde{\theta}$ the ratio $p(\theta|x)/p(\theta)$ can be identified as the Savage-Dickey-density ratio which is equal to the Bayes factor $BF_{01}$ for the precise null hypothesis $H_0:\theta=\tilde{\theta}$. Thus, the evidence for $H_0:\theta=\tilde{\theta}$ obtained through a traditional Bayes factor hypothesis test is at least $\nu$ for all values inside the Bayesian evidence interval $\text{EI}_r(\nu)$. Now, we illustrate the FBST with two examples below. The first example is a Bayesian two-sample t-test with flat reference function, and the second example the same test with a user-defined reference function.
+
+## Examples
+### Example 1: Two-sample t-test with flat reference function
+We use Student's sleep data as illustration, which is available in the data frame `sleep`.
+```{r}
+sleep
+```
+We select both groups and perform a traditional Bayes factor two-sample t-test based on the model of @Rouder2009 :
+```{r}
+library(BayesFactor)
+grp1 = sleep[1:10,]$extra
+grp2 = sleep[11:20,]$extra
+ttestBF(x=grp1,y=grp2, rscale="medium")
+```
+Based on a traditional Bayes factor test, there is not much evidence for the alternative: $BF_{10}=1.27$. Now, we obtain posterior MCMC samples and conduct the FBET based on a flat reference function $r(\theta)=1$. We use the evidence threshold $\nu=0$, which implies that the surprise function $s(\theta)=p(\theta|x)/r(\theta)$ reduces to the posterior $p(\theta|x)$ and the Bayesian evidence interval $\text{EI}_r(\nu)$ becomes $\text{EI}_r(0)$, which includes all parameter values $\theta \in \Theta$ with positive posterior density $p(\theta|x)>0$.
+```{r}
+posteriorDraws = ttestBF(x=grp1,y=grp2, rscale="medium", posterior = TRUE, iterations = 100000)[,4]
+```
+```{r}
+result = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.1,0.1), nu=0)
+summary(result)
+```
+The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0$ is equal to $0.0741$, while the Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1$  is equal to $0.9269$. Thus, the evidence for the alternative $H_1:\theta \notin [-0.1,0.1]$ is much stronger. In fact, $92.69\%$ of the posterior probability mass are located outside the interval $[-0.1,0.1]$, which is expressed by the Bayesian evidence value in favour of $H_0$. The following plot illustrates this result:
+```{r,fig.align='center',dpi=300,out.width="80%"}
+plot(result)
+```
+The blue area amounts to the $7.41\%$ of posterior probability mass which are located inside $[-0.1,0.1]$ and corroborate the null hypothesis $H_0$ based on the chosen ROPE $R:=[-0.1,0.1]$ around $\theta_0:=0$. However, the evidence threshold $\nu=0$ requires no form of corroboration for the parameter values $\theta$ after observing the data $x$, which is shown in the above plot: The evidence threshold is not visible, as it is a horizontal dashed line at the ordinate $y=0$.
+
+If we choose a different ROPE $R:=[-0.2,0.2]$, we obtain:
+```{r}
+result2 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=0)
+summary(result2)
+```
+```{r}
+plot(result2)
+```
+
+### Example 2: Two-sample t-test with user-specified reference function
+In the above, a flat reference function $r(\theta)=1$ was used in the surprise function $s(\theta)$ and the evidence threshold $\nu$ was set to zero. However, the prior distribution on the parameter $\theta$ was a medium Cauchy prior $C(0,\sqrt{2}/2)$. As the prior beliefs are reflected via this prior, it is reasonable to choose the Cauchy prior as the reference function instead. Below, it is shown how to do this. Also, the evidence threshold $\nu$ is set to $\nu=1$, so that only parameter values $\theta$ are included in the Bayesian evidence interval $\text{EI}_r(1)$ which attain a larger posterior density value than the corresponding prior density value:
+```{r}
+result3 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.1,0.1), nu=1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
+summary(result3)
+```
+Now, based on the different reference function and evidence threshold, we see that the resulting Bayesian evidence values change accordingly. Below, the situation is illustrated:
+```{r,fig.align='center',dpi=300,out.width="80%"}
+plot(result3)
+```
+The horizontal dashed line shows the evidence-threshold $\nu=1$, and only parameter values $\theta$ which fulfill $p(\theta|x)/p(\theta)\geq 1$ are included in the Bayesian evidence interval $\text{EI}_r(1)$. The resulting Bayesian evidence interval $\text{EI}_r(1)$ is shown as the vertical blue lines in the plot. The ROPE (or the interval hypothesis) $R:=[-0.1,0.1]$ is shown as the dashed vertical blue lines, and the resulting Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0:=\theta \in R$ is visualized as the blue area, which amounts to $2.06\%$ of the posterior probability mass. The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1:=\theta \notin R$ is given as $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)=0.8733$, which shows that $87.33\%$ of the posterior probability mass confirm the interval null hypothesis specified via $R:=[-0.1,0.1]$.
+
+Now, if we choose a different interval hypothesis $R:=[-0.2,0.2]$, we obtain:
+```{r}
+result4 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
+summary(result4)
+```
+Now, based on the different reference function and evidence threshold, we see that the resulting Bayesian evidence values change accordingly: The evidence for the null hypothesis grows, while the evidence for the alternative decreases. Below, the situation is illustrated:
+```{r,fig.align='center',dpi=300,out.width="80%"}
+plot(result4)
+```
+
+Also, we could require that values need to be corroborated in a stronger form by choosing for example $\nu=2$. Then, every value inside the Bayesian evidence interval has at least twice the value of the corresponding reference function $r(\theta)$. In the above example, we obtain:
+```{r}
+result5 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=2, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
+summary(result5)
+```
+```{r,fig.align='center',dpi=300,out.width="80%"}
+plot(result5)
+```
+
+# Conclusion
+In this vignette it was demonstrated how to perform the Full Bayesian Evidence Test (FBET) for testing an interval hypothesis in the Bayesian paradigm. It was shown that the FBET can be applied to a wide range of statistical models as long as the posterior is obtainable via standard MCMC algorithms. Thus, the FBET presents a flexible approach to Bayesian hypothesis testing while being fully coherent with the likelihood principle and the associated benefits (e.g. the irrelevance of stopping rules, the irrelevance of censoring mechanisms). Also, the assumption of an interval hypothesis is often more realistic than the assumption of a precise point null hypothesis, and the Bayesian evidence value provides a convenient way to quantify the evidence for a hypothesis based on the Bayesian evidence interval. Furthermore, the requirement of different strength of evidence can be incorporated into the analysis.
+
+# References
+
+<div id="refs"></div>

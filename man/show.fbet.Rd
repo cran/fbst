@@ -1,24 +1,23 @@
-\name{show.fbst}
-\alias{show.fbst}
-\alias{show}
+\name{show.fbet}
+\alias{show.fbet}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-show.fbst
+show.fbet
 }
 \description{
-Prints the main results of a Full Bayesian Significance Test to the console.
+Prints the main results of a Full Bayesian Evidence Test to the console.
 }
 \usage{
-\method{show}{fbst}(object)
+\method{show}{fbet}(object)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{object}{
-    An Object of class \code{"fbst"}.
+    An Object of class \code{"fbet"}.
   }
 }
 \details{
-Shows the main results of a Full Bayesian Significance Test stored in an object of class \code{fbst}.
+Shows the main results of a Full Bayesian Evidence Test stored in an object of class \code{fbet}.
 }
 \value{
   Prints the results onto the console.
@@ -47,8 +46,7 @@ p = as.vector(BayesFactor::ttestBF(x=grp1,y=grp2,
   rscale = "medium")[,4])
 
 # flat reference function
-res = fbst(posteriorDensityDraws = p, nullHypothesisValue = 0, 
-dimensionTheta = 2, dimensionNullset = 1)
+res = fbet(p, interval = c(-0.1,0.1), nu=1, FUN=NULL, par=NULL)
 show(res)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

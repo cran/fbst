@@ -3,9 +3,14 @@ importFrom("grDevices", "rgb")
   importFrom("methods", "new")
   importFrom("stats", "approxfun", "density", "integrate", "pchisq")
 importFrom("stats", "qchisq")
+importFrom("graphics", "legend")
 
 exportPattern("^[^\\.]")
 
 S3method(plot, fbst)
 S3method(summary, fbst)
 S3method(names, fbst)
+
+S3method(plot, fbet)
+S3method(names, fbet)
+S3method(summary, fbet)

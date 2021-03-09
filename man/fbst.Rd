@@ -33,7 +33,7 @@ dimensionTheta, dimensionNullset)
   }
 }
 \details{
-If no reference function is specified, a flat reference function is used as default reference function.
+If no reference function is specified, a flat reference function \eqn{r(\theta)=1} is used as default reference function.
 }
 \value{
   Returns an object of class fbst.
@@ -63,13 +63,13 @@ p = as.vector(BayesFactor::ttestBF(x=grp1,y=grp2,
 
 # flat reference function
 res = fbst(posteriorDensityDraws = p, nullHypothesisValue = 0, 
-dimensionTheta = 3, dimensionNullset = 2)
+dimensionTheta = 2, dimensionNullset = 1)
 summary(res)
 plot(res)
 
 # medium Cauchy C(0,1) reference function
-res_med = fbst(posteriorDensityDraws = p, nullHypothesisValue = 0, dimensionTheta = 3, 
-dimensionNullset = 2, FUN = dcauchy, par = list(location = 0, scale = sqrt(2)/2))
+res_med = fbst(posteriorDensityDraws = p, nullHypothesisValue = 0, dimensionTheta = 2, 
+dimensionNullset = 1, FUN = dcauchy, par = list(location = 0, scale = sqrt(2)/2))
 summary(res_med)
 plot(res_med)
 }

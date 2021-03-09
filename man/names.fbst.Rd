@@ -48,7 +48,7 @@ p = as.vector(BayesFactor::ttestBF(x=grp1,y=grp2,
 
 # flat reference function
 res = fbst(posteriorDensityDraws = p, nullHypothesisValue = 0, 
-dimensionTheta = 3, dimensionNullset = 2)
+dimensionTheta = 2, dimensionNullset = 1)
 names(res)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

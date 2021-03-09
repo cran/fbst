@@ -1,24 +1,26 @@
-\name{show.fbst}
-\alias{show.fbst}
-\alias{show}
+\name{summary.fbet}
+\alias{summary.fbet}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-show.fbst
+summary.fbet
 }
 \description{
-Prints the main results of a Full Bayesian Significance Test to the console.
+Prints the results of a Full Bayesian Evidence Test.
 }
 \usage{
-\method{show}{fbst}(object)
+\method{summary}{fbet}(object, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{object}{
-    An Object of class \code{"fbst"}.
+    An Object of class \code{"fbet"}.
+  }
+  \item{...}{
+    Additional parameters, see \code{"summary(object, ...)"}.
   }
 }
 \details{
-Shows the main results of a Full Bayesian Significance Test stored in an object of class \code{fbst}.
+Summarises the results of a Full Bayesian Evidence Test.
 }
 \value{
   Prints the results onto the console.
@@ -40,16 +42,15 @@ For a details, see: https://arxiv.org/abs/2001.10577 and https://arxiv.org/pdf/2
 \examples{
 set.seed(57)
 grp1=rnorm(50,0,1.5)
-grp2=rnorm(50,0.8,3.2)
+grp2=rnorm(50,0.3,3.2)
 
 p = as.vector(BayesFactor::ttestBF(x=grp1,y=grp2, 
   posterior = TRUE, iterations = 3000, 
   rscale = "medium")[,4])
 
 # flat reference function
-res = fbst(posteriorDensityDraws = p, nullHypothesisValue = 0, 
-dimensionTheta = 2, dimensionNullset = 1)
-show(res)
+res = fbet(p, interval = c(-0.1,0.1), nu=1, FUN=NULL, par=NULL)
+summary(res)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

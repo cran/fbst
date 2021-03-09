@@ -1,27 +1,26 @@
-\name{show.fbst}
-\alias{show.fbst}
-\alias{show}
+\name{names.fbet}
+\alias{names.fbet}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-show.fbst
+names.fbet
 }
 \description{
-Prints the main results of a Full Bayesian Significance Test to the console.
+Plots the names of the objects stored in the \code{data} object of a Full Bayesian Evidence Test.
 }
 \usage{
-\method{show}{fbst}(object)
+\method{names}{fbet}(x)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{object}{
-    An Object of class \code{"fbst"}.
+  \item{x}{
+    An Object of class \code{"fbet"}.
   }
 }
 \details{
-Shows the main results of a Full Bayesian Significance Test stored in an object of class \code{fbst}.
+Plots the names of the objects stored in the \code{data} object of a Full Bayesian Evidence Test.
 }
 \value{
-  Prints the results onto the console.
+  Returns a list of names.
 %%  ~Describe the value returned
 %%  If it is a LIST, use
 %%  \item{comp1 }{Description of 'comp1'}
@@ -47,9 +46,8 @@ p = as.vector(BayesFactor::ttestBF(x=grp1,y=grp2,
   rscale = "medium")[,4])
 
 # flat reference function
-res = fbst(posteriorDensityDraws = p, nullHypothesisValue = 0, 
-dimensionTheta = 2, dimensionNullset = 1)
-show(res)
+res = fbet(p, interval = c(-0.1,0.1), nu=1, FUN=NULL, par=NULL)
+names(res)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
