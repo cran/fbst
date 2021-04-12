@@ -1,5 +1,6 @@
 ---
 title: "Bayesian hypothesis testing with the Full Bayesian Evidence Test"
+author: Riko Kelter
 output: rmarkdown::html_vignette
 bibliography: library.bib
 vignette: >
@@ -20,7 +21,10 @@ library(fbst)
 ```
 
 
-# Introduction
+# Bayesian hypothesis testing with the Full Bayesian Evidence Test
+
+*Author: Riko Kelter*
+
 This vignette explains how to use the Full Bayesian Evidence Test (FBET) for Bayesian hypothesis testing of an interval hypothesis against its alternative via the Bayesian evidence value, which includes the e-value of the FBST as a special (limiting) case.
 
 ## Theory behind the FBET and Bayesian evidence value
@@ -34,28 +38,22 @@ The Bayesian evidence interval $\text{EI}_r(\nu)$ with reference function $r(\th
 It can be shown that the Bayesian evidence interval includes standard HPD intervals, support intervals and credible intervals as special cases.
 
 To unify Bayesian interval estimation and hypothesis testing based on the $\text{EI}_{r}(\nu)$ via an interval hypothesis (or the region of practical equivalence (ROPE)), the \textit{Bayesian evidence value} is introduced, which is associated with a Bayesian evidence interval: For a given evidence interval $\text{EI}_r(\nu)$ with reference function $r(\theta)$ to level $\nu$, the Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ to a ROPE $R$ for the null hypothesis $H_0$ is given as
-    \begin{align}
-        \text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0):=\int_{\text{EI}_r(\nu) \cap R} p(\theta|x)d\theta 
-    \end{align}
-    The corresponding Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ to a ROPE $R$ for the alternative hypothesis $H_1$ is given as
-    \begin{align}
-        \text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1):=\int_{\text{EI}_r(\nu) \cap R^c} p(\theta|x)d\theta 
-    \end{align}
-    where $R^c$ is the set complement of the ROPE $R$. The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ is the integral of the posterior density $p(\theta|x)$ over the intersection of the evidence interval $\text{EI}_r(\nu)$ with the ROPE (or interval hypothesis) $R$. This means that the evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ is the integral over the evidence interval $\text{EI}_r(\nu)$ restricted to the ROPE (or interval hypothesis) $R$ around the null value of $H_0:\theta=\theta_0$.
+$$\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0):=\int_{\text{EI}_r(\nu) \cap R} p(\theta|x)d\theta $$
+The corresponding Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ to a ROPE $R$ for the alternative hypothesis $H_1$ is given as
+$$\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1):=\int_{\text{EI}_r(\nu) \cap R^c} p(\theta|x)d\theta $$
+where $R^c$ is the set complement of the ROPE $R$. The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ is the integral of the posterior density $p(\theta|x)$ over the intersection of the evidence interval $\text{EI}_r(\nu)$ with the ROPE (or interval hypothesis) $R$. This means that the evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ is the integral over the evidence interval $\text{EI}_r(\nu)$ restricted to the ROPE (or interval hypothesis) $R$ around the null value of $H_0:\theta=\theta_0$.
 The Bayesian evidence value can also be called *generalised e-value*, as it can be shown to recover the e-value of the FBST as a special case.
 
 The Bayesian evidence value depends on three quantities:
 
-* The ROPE $R:=[a,b]$, $a<b$ which includes the null value $\theta_0$ of $H_0:\theta=\theta_0$, that is $\theta_0 \in R$. Thus, the ROPE $R$ can be interpreted as an interval hypothesis $H_0:=[a,b]$ around the null value $\theta_0$.
+* The ROPE $R:=[a,b], a<b$, which includes the null value $\theta_0$ of $H_0:\theta=\theta_0$, that is $\theta_0 \in R$. Thus, the ROPE $R$ can be interpreted as an interval hypothesis $H_0:=[a,b]$ around the null value $\theta_0$.
 * the reference function $r(\theta)$ which is used for construction of the Bayesian evidence interval $\text{EI}_r(\nu)$
 * and the evidence-threshold $\nu$ used for deciding which values are included in the Bayesian evidence interval $\text{EI}_r(\nu)$
 
 The evidence value of course also depends on the prior distribution $p(\theta)$, because the Bayesian evidence interval depends on the posterior distribution, which itself depends on the prior distribution $p(\theta)$. Of course, the Bayesian evidence value also depends on the data $x$ observed.
 
 From a hypothesis testing perspective a ROPE $R$ is interpreted as an interval hypothesis which includes the precise null value of the hypothesis $H_0$. Thus, from this point of view one could also omit the superscript $R$ in $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ and define the Bayesian evidence value directly for interval hypotheses $H_0 \in \Theta$ as
-\begin{align*}
-        \text{Ev}_{\text{EI}_r(\nu)}(H_0):=\int_{\text{EI}_r(\nu) \cap H_0} p(\theta|x)d\theta 
-\end{align*}
+$$\text{Ev}_{\text{EI}_r(\nu)}(H_0):=\int_{\text{EI}_r(\nu) \cap H_0} p(\theta|x)d\theta $$
 
 
 
@@ -81,7 +79,7 @@ We use Student's sleep data as illustration, which is available in the data fram
 ```{r}
 sleep
 ```
-We select both groups and perform a traditional Bayes factor two-sample t-test based on the model of @Rouder2009 :
+We select both groups and perform a traditional Bayes factor two-sample t-test based on the model of Rouder et al. (2009):
 ```{r}
 library(BayesFactor)
 grp1 = sleep[1:10,]$extra
@@ -100,6 +98,7 @@ The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of
 ```{r,fig.align='center',dpi=300,out.width="80%"}
 plot(result)
 ```
+
 The blue area amounts to the $7.41\%$ of posterior probability mass which are located inside $[-0.1,0.1]$ and corroborate the null hypothesis $H_0$ based on the chosen ROPE $R:=[-0.1,0.1]$ around $\theta_0:=0$. However, the evidence threshold $\nu=0$ requires no form of corroboration for the parameter values $\theta$ after observing the data $x$, which is shown in the above plot: The evidence threshold is not visible, as it is a horizontal dashed line at the ordinate $y=0$.
 
 If we choose a different ROPE $R:=[-0.2,0.2]$, we obtain:
@@ -107,7 +106,7 @@ If we choose a different ROPE $R:=[-0.2,0.2]$, we obtain:
 result2 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=0)
 summary(result2)
 ```
-```{r}
+```{r,fig.align='center',dpi=300,out.width="80%"}
 plot(result2)
 ```
 
@@ -121,6 +120,7 @@ Now, based on the different reference function and evidence threshold, we see th
 ```{r,fig.align='center',dpi=300,out.width="80%"}
 plot(result3)
 ```
+
 The horizontal dashed line shows the evidence-threshold $\nu=1$, and only parameter values $\theta$ which fulfill $p(\theta|x)/p(\theta)\geq 1$ are included in the Bayesian evidence interval $\text{EI}_r(1)$. The resulting Bayesian evidence interval $\text{EI}_r(1)$ is shown as the vertical blue lines in the plot. The ROPE (or the interval hypothesis) $R:=[-0.1,0.1]$ is shown as the dashed vertical blue lines, and the resulting Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0:=\theta \in R$ is visualized as the blue area, which amounts to $2.06\%$ of the posterior probability mass. The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1:=\theta \notin R$ is given as $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)=0.8733$, which shows that $87.33\%$ of the posterior probability mass confirm the interval null hypothesis specified via $R:=[-0.1,0.1]$.
 
 Now, if we choose a different interval hypothesis $R:=[-0.2,0.2]$, we obtain:
@@ -146,5 +146,10 @@ plot(result5)
 In this vignette it was demonstrated how to perform the Full Bayesian Evidence Test (FBET) for testing an interval hypothesis in the Bayesian paradigm. It was shown that the FBET can be applied to a wide range of statistical models as long as the posterior is obtainable via standard MCMC algorithms. Thus, the FBET presents a flexible approach to Bayesian hypothesis testing while being fully coherent with the likelihood principle and the associated benefits (e.g. the irrelevance of stopping rules, the irrelevance of censoring mechanisms). Also, the assumption of an interval hypothesis is often more realistic than the assumption of a precise point null hypothesis, and the Bayesian evidence value provides a convenient way to quantify the evidence for a hypothesis based on the Bayesian evidence interval. Furthermore, the requirement of different strength of evidence can be incorporated into the analysis.
 
 # References
+Kelter, R. (2020). fbst: An R package for the Full Bayesian Significance Test for testing a sharp null hypothesis against its alternative via the e-value. Behavior Research Methods.
 
-<div id="refs"></div>
+Pereira, C. A. d. B., & Stern, J. M. (2020). The e-value: a fully Bayesian significance measure for precise statistical hypotheses and its research program. São Paulo Journal of Mathematical Sciences, 1–19. https://doi.org/10.1007/s40863-020-00171-7
+
+Kelter, R. (2020). Analysis of Bayesian posterior significance and effect size indices for the two-sample t-test to support reproducible medical research. BMC Medical Research Methodology, 20(88). https://doi.org/https://doi.org/10.1186/s12874-020-00968-2
+
+Rouder, Jeffrey N., Paul L. Speckman, Dongchu Sun, Richard D. Morey, and Geoffrey Iverson. 2009. “Bayesian t tests for accepting and rejecting the null hypothesis.” Psychonomic Bulletin and Review 16 (2): 225–37. https://doi.org/10.3758/PBR.16.2.225

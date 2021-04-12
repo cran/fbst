@@ -30,7 +30,7 @@ plot(result)
 result2 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=0)
 summary(result2)
 
-## -----------------------------------------------------------------------------
+## ----fig.align='center',dpi=300,out.width="80%"-------------------------------
 plot(result2)
 
 ## -----------------------------------------------------------------------------

@@ -59,7 +59,7 @@ fbst <- function(posteriorDensityDraws, nullHypothesisValue=0, FUN=NULL, par=NUL
   
   # Calculate posterior probability mass of tangential set to H_0: delta = 0 (this is the Bayesian evidence value against H, \bar{ev})
   if (length(indices)>0){ # is there at least one posterior density value in the tangential set?
-    barEv = integrate(postDens, lower = postEffSizeSorted[min(indices)], upper = postEffSizeSorted[max(indices)])$value
+    barEv = integrate(postDens, lower = postEffSizeSorted[min(indices)], upper = postEffSizeSorted[max(indices)], subdivisions = 2000)$value
   } else { # tangential set is empty, Lebesgue-integral over it is zero then
     barEv = 0
   }
@@ -155,53 +155,59 @@ fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
   } else { # expanded tangential set is empty
     evidenceInterval = "Empty set"
   }
-  # Calculate the Bayesian evidence value for the interval null hypothesis
-  if (length(indices)>0 && max(evidenceInterval[1],interval[1])<min(evidenceInterval[2],interval[2])){ # is there at least one posterior density value in the expanded tangential set?
-    # integrate over intersection between the evidence interval and rope, indices [1] and [2] denote the lower and upper bounds of the evidence interval and rope
-    bayesianEvidenceValueIntervalNullHyp = integrate(postDens, lower = max(evidenceInterval[1],interval[1]), upper = min(evidenceInterval[2],interval[2]))$value
-  } else { # expanded tangential set is empty, Lebesgue-integral over an empty set is zero then
+  
+  if(class(evidenceInterval) != "character"){ # evidence interval is not the empty set? then compute Bayesian evidence values
+    # Calculate the Bayesian evidence value for the interval null hypothesis
+    if (length(indices)>0 && max(evidenceInterval[1],interval[1])<min(evidenceInterval[2],interval[2])){ # is there at least one posterior density value in the expanded tangential set?
+      # integrate over intersection between the evidence interval and rope, indices [1] and [2] denote the lower and upper bounds of the evidence interval and rope
+      bayesianEvidenceValueIntervalNullHyp = integrate(postDens, lower = max(evidenceInterval[1],interval[1]), upper = min(evidenceInterval[2],interval[2]), subdivisions = 2000)$value
+    } else { # expanded tangential set is empty, Lebesgue-integral over an empty set is zero then
+      bayesianEvidenceValueIntervalNullHyp = 0
+    }
+    # Calculate the Bayesian evidence value for the alternative hypothesis
+    bayesianEvidenceValueAlternative = 0
+    if(evidenceInterval[1]<interval[1] && evidenceInterval[2]<interval[1]){
+      # intersection of Bayesian evidence interval and alternative hypothesis (left part)
+      from.z <- evidenceInterval[1]
+      to.z <- evidenceInterval[2]
+      
+      bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z, subdivisions = 2000)$value
+    }
+    
+    if(evidenceInterval[1]>interval[2] && evidenceInterval[2]>interval[2]){
+      # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+      from.z <- evidenceInterval[1]
+      to.z <- evidenceInterval[2]
+      
+      bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z, subdivisions = 2000)$value
+    }
+    
+    if(evidenceInterval[1]<interval[1] && evidenceInterval[2]>interval[1]){
+      # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+      from.z <- evidenceInterval[1]
+      to.z <- interval[1]
+      
+      bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z, subdivisions = 2000)$value
+    }
+    
+    if(evidenceInterval[1]<interval[2] && evidenceInterval[2]>interval[2]){
+      # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+      from.z <- interval[2]
+      to.z <- evidenceInterval[2]
+      
+      bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z, subdivisions = 2000)$value
+    }
+    
+    # rounding errors
+    if(bayesianEvidenceValueIntervalNullHyp > 1){
+      bayesianEvidenceValueIntervalNullHyp = 1
+    }
+    if(bayesianEvidenceValueAlternative > 1){
+      bayesianEvidenceValueAlternative = 1
+    }
+  } else { # if evidence interval is empty, set Bayesian evidence values accordingly
     bayesianEvidenceValueIntervalNullHyp = 0
-  }
-  # Calculate the Bayesian evidence value for the alternative hypothesis
-  bayesianEvidenceValueAlternative = 0
-  if(evidenceInterval[1]<interval[1] && evidenceInterval[2]<interval[1]){
-    # intersection of Bayesian evidence interval and alternative hypothesis (left part)
-    from.z <- evidenceInterval[1]
-    to.z <- evidenceInterval[2]
-    
-    bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z)$value
-  }
-  
-  if(evidenceInterval[1]>interval[2] && evidenceInterval[2]>interval[2]){
-    # intersection of Bayesian evidence interval and alternative hypothesis (right part)
-    from.z <- evidenceInterval[1]
-    to.z <- evidenceInterval[2]
-    
-    bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z)$value
-  }
-  
-  if(evidenceInterval[1]<interval[1] && evidenceInterval[2]>interval[1]){
-    # intersection of Bayesian evidence interval and alternative hypothesis (right part)
-    from.z <- evidenceInterval[1]
-    to.z <- interval[1]
-    
-    bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z)$value
-  }
-  
-  if(evidenceInterval[1]<interval[2] && evidenceInterval[2]>interval[2]){
-    # intersection of Bayesian evidence interval and alternative hypothesis (right part)
-    from.z <- interval[2]
-    to.z <- evidenceInterval[2]
-    
-    bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z)$value
-  }
-  
-  # rounding errors
-  if(bayesianEvidenceValueIntervalNullHyp > 1){
-    bayesianEvidenceValueIntervalNullHyp = 1
-  }
-  if(bayesianEvidenceValueAlternative > 1){
-    bayesianEvidenceValueAlternative = 1
+    bayesianEvidenceValueAlternative = 0
   }
   
   
@@ -398,7 +404,7 @@ summary.fbst <- function(object, ...){
 summary.fbet <- function(object, ...){
   cat("Full Bayesian Evidence Test:\n")
   cat("Reference function:", object$referenceFunction, "\n")
-  cat("Testing Hypothesis H_0:=[", object$interval[1] ,object$interval[1], "]\n")
+  cat("Testing Hypothesis H_0:=[",object$interval[1], ",",object$interval[2],"]\n")
   cat("Bayesian e-value in favour of H_0:", object$eValueH0, "\n")
   cat("Bayesian e-value against H_0:", object$eValueH1, "\n")
 }
