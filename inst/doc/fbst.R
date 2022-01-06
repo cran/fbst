@@ -23,7 +23,8 @@ summary(result)
 plot(result)
 
 ## -----------------------------------------------------------------------------
-result2 = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0, dimensionTheta = 2, dimensionNullset = 1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
+result2 = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0, dimensionTheta = 2, 
+               dimensionNullset = 1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
 summary(result2)
 
 ## ----fig.align='center',dpi=300,out.width="80%"-------------------------------

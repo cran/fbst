@@ -2,7 +2,6 @@
 title: "Precise Bayesian hypothesis testing with the Full Bayesian Significance Test"
 author: Riko Kelter
 output: rmarkdown::html_vignette
-bibliography: library.bib
 vignette: >
   %\VignetteIndexEntry{Precise Bayesian hypothesis testing with the Full Bayesian Significance Test}
   %\VignetteEngine{knitr::rmarkdown}
@@ -24,11 +23,11 @@ knitr::opts_chunk$set(
 This vignette explains how to use the Full Bayesian Significance Test (FBST) for Bayesian hypothesis testing of a precise (point-null) hypothesis against its alternative via the e-value.
 
 ## Theory behind the FBST and e-value
-The FBST uses the e-value to quantify the evidence against a precise hypothesis. The FBST can be used with any standard parametric model, where $\theta \in \Theta \subseteq \mathbb{R}^p$ is a (possibly vector-valued) parameter of interest, $p(x|\theta)$ is the likelihood and $p(\theta)$ is the density of the prior distribution.
+The FBST uses the e-value to quantify the evidence against a precise hypothesis. The FBST can be used with any standard parametric model, where $\theta \in \Theta \subseteq \mathbb{R}^p$ is a (possibly vector-valued) parameter of interest, $p(y|\theta)$ is the likelihood and $p(\theta)$ is the density of the prior distribution.
 
 A precise hypothesis $H_0$ makes the statement that the parameter $\theta$ lies in the corresponding null set $\Theta_{H_0}$. For point null hypotheses like $H_0:\theta=\theta_0$ the null set simply is given as $\Theta_{H_0} = \theta_0$. The idea of the FBST is to use the $e$-value, which quantifies the Bayesian evidence against $H_0$ as a Bayesian replacement of the traditional $p$-value. To construct the $e$-value the posterior *surprise function* $s(\theta)$ is defined as follows:
-$$s(\theta):=\frac{p(\theta|x)}{r(\theta)}$$
-The surprise function normalizes the posterior distribution $p(\theta|x)$ by a reference function $r(\theta)$. Possible choices include a flat reference function $r(\theta)=1$ or any prior distribution $p(\theta)$ for the parameter $\theta$, that is: $r(\theta)=p(\theta)$. In the first case, the surprise function becomes the posterior distribution $p(\theta|x)$, and in the second case parameter values $\theta$ with a surprise function $s(\theta)\geq 1$ indicate that they have been corroborated by the data $x$, while parameter values $\theta$ with a surprise function $s(\theta)<1$ indicate that they have become less probable a posteriori. $s^{*}$ is then defined as the supremum of the surprise function $s(\theta)$ over the null set $\Theta_{H_0}$ which belongs to the hypothesis $H_0$ :
+$$s(\theta):=\frac{p(\theta|y)}{r(\theta)}$$
+The surprise function normalizes the posterior distribution $p(\theta|y)$ by a reference function $r(\theta)$. Possible choices include a flat reference function $r(\theta):=1$ or any prior distribution $p(\theta)$ for the parameter $\theta$, that is: $r(\theta):=p(\theta)$. In the first case, the surprise function becomes the posterior distribution $p(\theta|y)$, and in the second case parameter values $\theta$ with a surprise function $s(\theta)\geq 1$ indicate that they have been corroborated by the data $y$, while parameter values $\theta$ with a surprise function $s(\theta)<1$ indicate that they have become less probable a posteriori. $s^{*}$ is then defined as the supremum of the surprise function $s(\theta)$ over the null set $\Theta_{H_0}$ which belongs to the hypothesis $H_0$ :
 $$s^{*}:=\sup\limits_{\theta \in \Theta_{H_0}}s(\theta)$$
 The tangential set $\overline{T}(\nu)$ to the hypothesis $H_0$ is defined as
 $$\overline{T}(\nu):=\Theta \setminus T(\nu)$$
@@ -37,9 +36,9 @@ $$T(\nu):=\{\theta \in \Theta|s(\theta)\leq \nu \}$$
 $T(s^{*})$ includes all parameter values $\theta$ which are smaller or equal to the supremum $s^{*}$ of the surprise function under the null set, and $\overline{T}(s^{*})$ includes all parameter values $\theta$ which are larger than the supremum $s^{*}$ of the surprise function under the null set.
 
 The last step towards the $e$-value is to define the *cumulative surprise functions* $W(\nu)$ and $\overline{W}(\nu)$:
-$$W(\nu):=\int_{T(\nu)}p(\theta|x)d\theta$$
-$$\overline{W}(\nu):=\int_{\overline{T}(\nu)}p(\theta|x)d\theta$$
-and setting $\nu=s^{*}$, $W(s^{*})$ is simply the integral of the posterior distribution $p(\theta|x)$ over $T(s^{*})$, and $W(s^{*})$ the integral over $\overline{T}(s^{*})$. Note that $\overline{W}(\nu):=1-W(\nu)$ due to the definition of $T(\nu)$ and $\overline{T}(\nu)$. The Bayesian $e$-value, which measures the evidence *against* the null hypothesis $H_0$, is then defined as
+$$W(\nu):=\int_{T(\nu)}p(\theta|y)d\theta$$
+$$\overline{W}(\nu):=\int_{\overline{T}(\nu)}p(\theta|y)d\theta$$
+and setting $\nu=s^{*}$, $W(s^{*})$ is simply the integral of the posterior distribution $p(\theta|y)$ over $T(s^{*})$, and $W(s^{*})$ the integral over $\overline{T}(s^{*})$. Note that $\overline{W}(\nu):=1-W(\nu)$ due to the definition of $T(\nu)$ and $\overline{T}(\nu)$. The Bayesian $e$-value, which measures the evidence *against* the null hypothesis $H_0$, is then defined as
 $$\overline{\text{ev}}(H_0):=\overline{W}(s^*)$$
 Thus, the e-value $\overline{\text{ev}}(H_0)$ is the integral $\overline{W}(s^*)$ of the posterior distribution over the tangential set $\overline{T}(s^{*})$, that is, over those values $\theta$ for which the surprise $s(\theta)>s^{*}=\sup\limits_{\theta \in \Theta_{H_0}}s(\theta)$ holds. If the probability mass of these values, which is calculated by the integral $\overline{W}(s^*)$, is large, this indicates substantial evidence against $H_0$ being a reasonable explanation of the observed data.
 
@@ -48,13 +47,14 @@ Thus, the e-value $\overline{\text{ev}}(H_0)$ is the integral $\overline{W}(s^*)
 To run the FBST, a posterior distribution is required, which can be obtained as in any standard Bayesian workflow:
 
 1. Specify a joint distribution for the outcome(s) and all relevant parameters. Typically, this takes the form of a marginal prior distribution for the parameters multiplied by a likelihood for the outcome(s) conditional on the parameters. This joint distribution is proportional to a posterior distribution of the parameters conditional on the observed data.
-1. Run a Markov-Chain-Monte-Carlo (MCMC) algorithm to draw samples from posterior distribution.
-1. Evaluate the model fit with regard to the data (e.g. via posterior predictive checks) and possibly revise the model.
+2. Run a Markov-Chain-Monte-Carlo (MCMC) algorithm to draw samples from posterior distribution.
+3. Evaluate the model fit with regard to the data (e.g. via posterior predictive checks) and possibly revise the model.
 
 Based on the sample of posterior draws, the FBST can be performed as follows:
+
 1. Specify a null hypothesis value $\theta_0$ for the precise null hypothesis $H_0:\theta=\theta_0$.
-1. Specify a reference function $r(\theta)$ which is used to build the surprise function $$s(\theta):=\frac{p(\theta|x)}{r(\theta)}$$ Typical choices include a flat reference function $r(\theta)=1$ which implies the surprise function becomes the posterior $p(\theta|x)$, or the density $p(\theta)$ of a prior distribution $\mathbb{P}_{\vartheta}$ for the parameter $\theta$. In the latter case, the surprise function $s(\theta)$ quantifies the ratio of posterior to prior, and parameter values $\theta$ with $s(\theta)\geq 1$ can be interpreted as being corroborated by observing the data $x$. Parameter values $\theta$ with $s(\theta)<1$ can be interpreted as not being corroborated by observing the data $x$.
-1. Run the FBST and compute the Bayesian evidence against $H_0$, the e-value $\overline{\text{ev}}(H_0)$.
+2. Specify a reference function $r(\theta)$ which is used to build the surprise function $$s(\theta):=\frac{p(\theta|y)}{r(\theta)}$$ Typical choices include a flat reference function $r(\theta):=1$ which implies the surprise function becomes the posterior $p(\theta|y)$, or the density $p(\theta)$ of a prior distribution $P_{\vartheta}$ for the parameter $\theta$. In the latter case, the surprise function $s(\theta)$ quantifies the ratio of posterior to prior, and parameter values $\theta$ with $s(\theta)\geq 1$ can be interpreted as being corroborated by observing the data $y$. Parameter values $\theta$ with $s(\theta)<1$ can be interpreted as not being corroborated by observing the data $y$.
+3. Run the FBST and compute the Bayesian evidence against $H_0$, the e-value $\overline{\text{ev}}(H_0)$.
 
 Now, we illustrate the FBST with two examples below. The first example is a Bayesian two-sample t-test with flat reference function, and the second example the same test with a user-defined reference function.
 
@@ -78,17 +78,18 @@ library(fbst)
 result = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0, dimensionTheta = 2, dimensionNullset = 1)
 summary(result)
 ```
-The e-value $\overline{\text{ev}}(H_0)$ against $H_0:\theta=0$ is given as $\overline{\text{ev}}(H_0)=0.83$, so 83\% of the posterior surprise function, which in this case (flat reference function) is the posterior density, attain a larger posterior density value than the posterior density value $p(\theta_0|x)$ at $\theta_0=0$. This can be visualized as follows:
+The e-value $\overline{\text{ev}}(H_0)$ against $H_0:\theta=0$ is given as $\overline{\text{ev}}(H_0)=0.83$, so 83\% of the posterior surprise function, which in this case (flat reference function) is the posterior density, attain a larger posterior density value than the posterior density value $p(\theta_0|y)$ at $\theta_0=0$. This can be visualized as follows:
 ```{r,fig.align='center',dpi=300,out.width="80%"}
 plot(result)
 ```
 
-The blue point shows the resulting surprise function value at $\theta_0=0$. As the flat reference function $r(\theta)=1$ is used, $s(\theta)=p(\theta|x)$, so the blue point is the posterior density value $p(0|x)$. The blue area shows the associated probability mass with the parameter values $\theta$ which attain a larger surprise than the surprise at $\theta_0$, that is, the tangential set to $H_0$. Thus, these values $\theta$ fulfill $s(\theta)>s(0)$ which is equivalent to $p(\theta|x)>p(0|x)$ in this case. The red area shows the probability mass associated with values $\theta$ that do not fulfill this condition. Based on the result there is evidence for the alternative, but there are about $16\%$ of the posterior which prevent a conclusive statement or clear rejection of $H_0:\theta=0$.
+The blue point shows the resulting surprise function value at $\theta_0=0$. As the flat reference function $r(\theta)=1$ is used, $s(\theta)=p(\theta|y)$, so the blue point is the posterior density value $p(0|y)$. The blue area shows the associated probability mass with the parameter values $\theta$ which attain a larger surprise than the surprise at $\theta_0$, that is, the tangential set to $H_0$. Thus, these values $\theta$ fulfill $s(\theta)>s(0)$ which is equivalent to $p(\theta|y)>p(0|y)$ in this case. The red area shows the probability mass associated with values $\theta$ that do not fulfill this condition. Based on the result there is evidence for the alternative, but there are about $16\%$ of the posterior which prevent a conclusive statement or clear rejection of $H_0:\theta=0$.
 
 ### Example 2: Two-sample t-test with user-specified reference function
 In the above, a flat reference function $r(\theta)=1$ was used in the surprise function $s(\theta)$. However, the prior distribution on the parameter $\theta$ was a medium Cauchy prior $C(0,\sqrt{2}/2)$. As the prior beliefs are reflected via this prior, it is reasonable to choose the Cauchy prior as the reference function instead. Below, it is shown how to do this:
 ```{r}
-result2 = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0, dimensionTheta = 2, dimensionNullset = 1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
+result2 = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0, dimensionTheta = 2, 
+               dimensionNullset = 1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
 summary(result2)
 ```
 ```{r,fig.align='center',dpi=300,out.width="80%"}
@@ -104,21 +105,23 @@ The standardized $e$-value is defined as:
 $$\overline{\text{sev}}(H_0)=F_{k-h}(F^{-1}_{k}(\overline{\text{ev}}))$$
 Here, $F^{-1}_{k}$ is the quantile function of the cumulative distribution function of the $\chi_{k}^2$ distribution with $k$ degrees of freedom. $\overline{\text{sev}}(H_0)$ can be interpreted as the probability of obtaining less evidence than $\overline{\text{ev}}(H_0)$ against the null hypothesis $H_0$. Defining
 $$\text{sev}(H_0)=1-\overline{\text{sev}}(H_0)$$
-$\text{sev}(H_0)$ can then be interpreted as the probability of obtaining $\overline{\text{ev}}(H_0)$ or more evidence against $H_0$, which is closely related to the interpretation of a frequentist $p$-value. If $\text{sev}(H_0)$ is small, this implies that the probability of obtaining even more evidence against the null hypothesis $H_0$ than the evidence against it observed, namely $\overline{\text{ev}}(H_0)$, is small. As a consequence, one can reject $H_0$. However, the $p$-value operates in the sample space while the standardized $e$-value operates in the parameter space. The standardized $e$-value can be used as a Bayesian replacement of the frequentist $p$-value, while being very similar in interpretation.
+$\text{sev}(H_0)$ can then be interpreted as the probability of obtaining $\overline{\text{ev}}(H_0)$ or more evidence against $H_0$, which is closely related to the interpretation of a frequentist $p$-value. If $\text{sev}(H_0)$ is small, this implies that the probability of obtaining even more evidence than $\overline{\text{ev}}(H_0)$ against the null hypothesis $H_0$ is small. As a consequence, one can reject $H_0$. However, the $p$-value operates in the sample space while the standardized $e$-value operates in the parameter space. The standardized $e$-value can be used as a Bayesian replacement of the frequentist $p$-value, while being very similar in interpretation.
 
 ```{r}
 result$sev_H_0
 result2$sev_H_0
 ```
-In the first example, we would thus not reject $H_0:\theta=0$ based on a threshold of $\text{sev}(H_0)<0.05$, while in the second example above we would. Note the identical trend in the growing plain evidence against $H_0:\theta=0$ based on the plain e-values $\overline{\text{ev}}(H_0)$. For details on the theoretical properties of the standardized e-value, see Kelter (2020) and Pereira & Stern (2020).
+In the first example, we would thus not reject $H_0:\theta=0$ based on a threshold of $\text{sev}(H_0)<0.05$, while in the second example above we would. Note the identical trend in the Bayesian evidence against $H_0:\theta=0$ based on the non-standardized e-values $\overline{\text{ev}}(H_0)$. For details on the theoretical properties of the standardized e-value, see Kelter (2020) and Pereira & Stern (2020).
 
 # Conclusion
 In this vignette it was demonstrated how to perform the FBST for testing a precise hypothesis in the Bayesian paradigm. It was shown that the FBST can be applied to a wide range of statistical models as long as the posterior is obtainable via standard MCMC algorithms. Thus, the FBST presents a flexible approach to Bayesian hypothesis testing while being fully coherent with the likelihood principle and the associated benefits (e.g. the irrelevance of stopping rules, the irrelevance of censoring mechanisms).
 
-When an interval hypothesis is more reasonable, the Full Bayesian Evidence Test (FBET) presents a generalization of the FBST and the underlying Pereira-Stern theory.
+When an interval hypothesis is more reasonable, the Full Bayesian Evidence Test (FBET) presents a generalization of the FBST and the underlying Pereira-Stern theory and is also available in the package.
 
 # References
-Kelter, R. (2020). fbst: An R package for the Full Bayesian Significance Test for testing a sharp null hypothesis against its alternative via the e-value. Behavior Research Methods (in press)
+Kelter, R. (2022). The Evidence Interval and the Bayesian Evidence Value - On a unified theory for Bayesian hypothesis testing and interval estimation. British Journal of Mathematical and Statistical Psychology (2022), in press.
+
+Kelter, R. (2021). fbst: An R package for the Full Bayesian Significance Test for testing a sharp null hypothesis against its alternative via the e-value. Behav Res (2021). https://doi.org/10.3758/s13428-021-01613-6
 
 Pereira, C. A. d. B., & Stern, J. M. (2020). The e-value: a fully Bayesian significance measure for precise statistical hypotheses and its research program. São Paulo Journal of Mathematical Sciences, 1–19. https://doi.org/10.1007/s40863-020-00171-7
 
