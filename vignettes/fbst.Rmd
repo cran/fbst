@@ -15,10 +15,10 @@ knitr::opts_chunk$set(
 )
 ```
 
+## Precise Bayesian hypothesis testing with the Full Bayesian Significance Test
 
-# Precise Bayesian hypothesis testing with the Full Bayesian Significance Test
+*Author: Riko Kelter* 
 
-*Author: Riko Kelter*
 
 This vignette explains how to use the Full Bayesian Significance Test (FBST) for Bayesian hypothesis testing of a precise (point-null) hypothesis against its alternative via the e-value.
 
@@ -73,13 +73,15 @@ ttestBF(x=grp1,y=grp2, rscale="medium")
 ```
 Based on a traditional Bayes factor test, there is not much evidence for the alternative: $BF_{10}=1.27$. Now, we obtain posterior MCMC samples and conduct the FBST based on a flat reference function $r(\theta)=1$. Note that the dimension of the null set is 1 (the variances in both groups are assumed to be equal but can have any particular value in Rouder's model), and the whole parameter space has two free parameters, namely the effect size and the variance of the groups.
 ```{r}
-posteriorDraws = ttestBF(x=grp1,y=grp2, rscale="medium", posterior = TRUE, iterations = 100000)[,4]
+posteriorDraws = ttestBF(x=grp1,y=grp2, rscale="medium", posterior = TRUE, 
+                         iterations = 100000)[,4]
 library(fbst)
-result = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0, dimensionTheta = 2, dimensionNullset = 1)
+result = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0, 
+              dimensionTheta = 2, dimensionNullset = 1)
 summary(result)
 ```
 The e-value $\overline{\text{ev}}(H_0)$ against $H_0:\theta=0$ is given as $\overline{\text{ev}}(H_0)=0.83$, so 83\% of the posterior surprise function, which in this case (flat reference function) is the posterior density, attain a larger posterior density value than the posterior density value $p(\theta_0|y)$ at $\theta_0=0$. This can be visualized as follows:
-```{r,fig.align='center',dpi=300,out.width="80%"}
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
 plot(result)
 ```
 
@@ -88,11 +90,12 @@ The blue point shows the resulting surprise function value at $\theta_0=0$. As t
 ### Example 2: Two-sample t-test with user-specified reference function
 In the above, a flat reference function $r(\theta)=1$ was used in the surprise function $s(\theta)$. However, the prior distribution on the parameter $\theta$ was a medium Cauchy prior $C(0,\sqrt{2}/2)$. As the prior beliefs are reflected via this prior, it is reasonable to choose the Cauchy prior as the reference function instead. Below, it is shown how to do this:
 ```{r}
-result2 = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0, dimensionTheta = 2, 
-               dimensionNullset = 1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
+result2 = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0, 
+               dimensionTheta = 2, dimensionNullset = 1, FUN = dcauchy, 
+               par=list(location = 0, scale = sqrt(2)/2))
 summary(result2)
 ```
-```{r,fig.align='center',dpi=300,out.width="80%"}
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
 plot(result2)
 ```
 
@@ -113,12 +116,12 @@ result2$sev_H_0
 ```
 In the first example, we would thus not reject $H_0:\theta=0$ based on a threshold of $\text{sev}(H_0)<0.05$, while in the second example above we would. Note the identical trend in the Bayesian evidence against $H_0:\theta=0$ based on the non-standardized e-values $\overline{\text{ev}}(H_0)$. For details on the theoretical properties of the standardized e-value, see Kelter (2020) and Pereira & Stern (2020).
 
-# Conclusion
+## Conclusion
 In this vignette it was demonstrated how to perform the FBST for testing a precise hypothesis in the Bayesian paradigm. It was shown that the FBST can be applied to a wide range of statistical models as long as the posterior is obtainable via standard MCMC algorithms. Thus, the FBST presents a flexible approach to Bayesian hypothesis testing while being fully coherent with the likelihood principle and the associated benefits (e.g. the irrelevance of stopping rules, the irrelevance of censoring mechanisms).
 
 When an interval hypothesis is more reasonable, the Full Bayesian Evidence Test (FBET) presents a generalization of the FBST and the underlying Pereira-Stern theory and is also available in the package.
 
-# References
+## References
 Kelter, R. (2022). The Evidence Interval and the Bayesian Evidence Value - On a unified theory for Bayesian hypothesis testing and interval estimation. British Journal of Mathematical and Statistical Psychology (2022), in press.
 
 Kelter, R. (2021). fbst: An R package for the Full Bayesian Significance Test for testing a sharp null hypothesis against its alternative via the e-value. Behav Res (2021). https://doi.org/10.3758/s13428-021-01613-6

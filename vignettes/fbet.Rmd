@@ -8,6 +8,11 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+## Bayesian hypothesis testing with the Full Bayesian Evidence Test
+
+*Author: Riko Kelter* 
+
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -18,11 +23,6 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(fbst)
 ```
-
-
-# Bayesian hypothesis testing with the Full Bayesian Evidence Test
-
-*Author: Riko Kelter*
 
 This vignette explains how to use the Full Bayesian Evidence Test (FBET) for Bayesian hypothesis testing of an interval hypothesis against its alternative via the Bayesian evidence value, which includes the e-value of the FBST as a special (limiting) case.
 
@@ -101,7 +101,8 @@ Based on a traditional Bayes factor test, there is not much evidence for the alt
 Therefore, we now obtain posterior MCMC samples and conduct the FBET based on a flat reference function $r(\theta):=1$. We use the evidence threshold $\nu=0$, which implies that the surprise function $s(\theta)=p(\theta|y)/r(\theta)$ reduces to the posterior density $p(\theta|y)$ and the Bayesian evidence interval $\text{EI}_r(\nu)$ becomes $\text{EI}_r(0)$, which includes all parameter values $\theta \in \Theta$ with positive posterior density $p(\theta|y)>0$.
 ```{r}
 set.seed(42)
-posteriorDraws = ttestBF(x=grp1,y=grp2, rscale="medium", posterior = TRUE, iterations = 100000)[,4]
+posteriorDraws = ttestBF(x=grp1,y=grp2, rscale="medium", posterior = TRUE, 
+                         iterations = 100000)[,4]
 ```
 ```{r}
 set.seed(42)
@@ -109,7 +110,7 @@ result = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.1,0.1), nu
 summary(result)
 ```
 The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0:\theta \in [-0.1,0.1]$ is equal to $0.07$, while the Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1$  is equal to $0.93$. Thus, the evidence for the alternative $H_1:\theta \notin [-0.1,0.1]$ is much stronger. In fact, $92.69\%$ of the posterior probability mass are located outside the interval $[-0.1,0.1]$, which is expressed by the Bayesian evidence value in favour of $H_0$. The following plot illustrates this result:
-```{r,fig.align='center',dpi=300,out.width="80%"}
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
 plot(result)
 ```
 
@@ -121,7 +122,7 @@ set.seed(42)
 result2 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=0)
 summary(result2)
 ```
-```{r,fig.align='center',dpi=300,out.width="80%"}
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
 plot(result2)
 ```
 
@@ -134,7 +135,7 @@ result3 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.1,0.1),
 summary(result3)
 ```
 Now, based on the different reference function and evidence threshold, we see that the resulting Bayesian evidence values change accordingly. Below, the situation is illustrated:
-```{r,fig.align='center',dpi=300,out.width="80%"}
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
 plot(result3)
 ```
 
@@ -142,28 +143,30 @@ The horizontal dashed line shows the evidence-threshold $\nu=1$, and only parame
 
 Now, if we choose a different interval hypothesis $H_0:=[-0.2,0.2]$, we obtain:
 ```{r}
-result4 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
+result4 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), 
+               nu=1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
 summary(result4)
 ```
 Now, based on the different reference function and evidence threshold, we see that the resulting Bayesian evidence values change accordingly: The evidence for the null hypothesis grows, while the evidence for the alternative decreases. Below, the situation is illustrated:
-```{r,fig.align='center',dpi=300,out.width="80%"}
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
 plot(result4)
 ```
 
 Also, we could require that values need to be corroborated in a stronger form by choosing for example $\nu=2$. Then, every value inside the Bayesian evidence interval has at least twice the value of the corresponding reference function $r(\theta)$. In the above example, we obtain:
 ```{r}
 set.seed(42)
-result5 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=2, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
+result5 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=2, 
+               FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
 summary(result5)
 ```
-```{r,fig.align='center',dpi=300,out.width="80%"}
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
 plot(result5)
 ```
 
-# Conclusion
+## Conclusion
 In this vignette it was demonstrated how to perform the Full Bayesian Evidence Test (FBET) for testing an interval hypothesis in the Bayesian paradigm. It was shown that the FBET can be applied to a wide range of statistical models as long as the posterior is obtainable via standard MCMC algorithms. Thus, the FBET presents a flexible approach to Bayesian hypothesis testing while being fully coherent with the likelihood principle and the associated benefits (e.g. the irrelevance of stopping rules, the irrelevance of censoring mechanisms). Also, the assumption of an interval hypothesis is often more realistic than the assumption of a precise point null hypothesis, and the Bayesian evidence value provides a convenient way to quantify the evidence for a hypothesis based on the Bayesian evidence interval. Furthermore, the requirement of different strength of evidence can be incorporated into the analysis. Theoretical details can be found in Kelter (2022).
 
-# References
+## References
 Kelter, R. (2022). The Evidence Interval and the Bayesian Evidence Value - On a unified theory for Bayesian hypothesis testing and interval estimation. British Journal of Mathematical and Statistical Psychology (2022), in press.
 
 Kelter, R. (2021). fbst: An R package for the Full Bayesian Significance Test for testing a sharp null hypothesis against its alternative via the e-value. Behav Res (2021). https://doi.org/10.3758/s13428-021-01613-6
