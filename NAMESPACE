@@ -1,9 +1,14 @@
+importFrom("rstanarm", "stan_glm")
+importFrom("ks", "kde")
+importFrom("viridis", "viridis")
+importFrom("graphics", "image")
 importFrom("grDevices", "rgb")
   importFrom("graphics", "abline", "plot", "points", "polygon")
   importFrom("methods", "new")
   importFrom("stats", "approxfun", "density", "integrate", "pchisq")
 importFrom("stats", "qchisq")
 importFrom("graphics", "legend")
+importFrom("cubature", "cubintegrate")
 
 exportPattern("^[^\\.]")
 

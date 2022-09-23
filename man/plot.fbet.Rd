@@ -8,7 +8,8 @@ plot.fbet
 Plots the results of a Full Bayesian Evidence Test.
 }
 \usage{
-\method{plot}{fbet}(x, ..., leftBoundary = -100, rightBoundary = 100)
+\method{plot}{fbet}(x, ..., leftBoundary = -100, rightBoundary = 100, type = "posterior", 
+legendposition = "topleft", main = "")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -23,6 +24,15 @@ Plots the results of a Full Bayesian Evidence Test.
   }
   \item{rightBoundary}{
     x-coordinate for the right boundary to which is used for visualising the results. Defaults to 100.
+  }
+  \item{type}{
+    Defaults to "posterior", which produces a posterior-density based plot. Can be changed to "surprise" to show the surprise function instead.
+  }
+  \item{legendposition}{
+    Position of the legend. Defaults to "topleft". Must be one of the standard string values available for the legend function of base R.
+  }
+  \item{main}{
+    Title string for the plot. Default to no title.
   }
 }
 \details{

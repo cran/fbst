@@ -1,0 +1,102 @@
+---
+title: "Precise Bayesian hypothesis testing with the Full Bayesian Significance Test in multidimensional posteriors"
+author: Riko Kelter
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Precise Bayesian hypothesis testing with the Full Bayesian Significance Test in multidimensional posteriors}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Precise Bayesian hypothesis testing with the Full Bayesian Significance Test in multidimensional posteriors
+
+*Author: Riko Kelter* 
+
+
+This vignette explains how to use the Full Bayesian Significance Test (FBST) for Bayesian hypothesis testing of a precise (point-null) hypothesis against its alternative via the e-value in posteriors of dimension larger than one.
+
+```{r setup}
+library(fbst)
+```
+
+The theory behind the FBST and e-value has been detailed in the vignette 'Precise Bayesian hypothesis testing with the Full Bayesian Significance Test'. In this vignette, we illustrate how the FBST can be applied when the dimension of the posterior is of dimension larger than one. In a broad variety of models, the posterior has multiple parameters of interest, for example, take a simple normal model
+$$Y \sim N(\mu,\sigma^2)$$
+where we use a normal prior for the mean $\mu$ and an exponential prior for the standard deviation $\sigma$:
+$$\mu \sim N(0,1), \hspace{0.5cm} \sigma \sim \exp(1)$$
+Now, the full-dimensional posterior when both $\mu$ and $\sigma$ are unknown is given as
+$$p(\mu,\sigma|y)$$
+given the observed data $y$. Thus, in such cases it is not allowed to shift to a marginal posterior 
+$$p(\mu|y)=\int p(\mu,\sigma|y)p(\sigma)d\sigma$$
+of the parameter $\mu$ of interest and calculate the supremum of the surprise function under the null set $\Theta_{H_0}$ based on this marginal posterior $p(\mu|y)$. Instead, one must use the two-dimensional posterior $p(\mu,\sigma|y)$ in such cases.
+
+Therefore, we use a linear regression model without a predictor, so we are left with the standard deviation $\sigma$ and the intercept, which is the mean parameter $\mu$.
+Now, we fit the model:
+```{r, warning=FALSE}
+library(rstanarm)
+set.seed(42)
+mu_true = 0.25
+sigma_true = 1
+stanData = data.frame(y=rnorm(50,mu_true,sigma_true))
+fit1 <- stan_glm(y ~ NULL, data = stanData,
+                  family = gaussian(link = "identity"),
+                  prior_intercept = normal(0,10),
+                  prior_aux = exponential(1),
+                  seed = 12345)
+```
+We can print the fit:
+```{r}
+print(fit1)
+```
+
+We store the posterior draws of $\mu$ and $\sigma$ in a matrix:
+```{r}
+posteriorDrawsMatrix = as.matrix(fit1)
+head(posteriorDrawsMatrix)
+```
+Now we call the fbst function:
+```{r}
+resFlat = fbst(posteriorDrawsMatrix, nullHypothesisValue=0, dimensionTheta=2, dimensionNullset=1, dim = 2, gridSize = 1000)
+summary(resFlat)
+```
+The plain e-value against the null hypothesis $H_0:\mu=0$ can be accessed as follows:
+```{r}
+resFlat$eValue
+```
+In the two-dimensional case, visualization of the results is possible via contour plots or perspective plots:
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
+plot(resFlat, type = "contour", parNames=c("mu","sigma"))
+```
+The above contour plot shows the posterior draws as black points, and the parameter value $(mu_0,\hat{\sigma})$ (magenta point) which maximizes the surprise function under the null set $\Theta_{H_0}:=\{(0,\sigma)|\sigma \in \mathbb{R}_{+}\}$. The e-value against $H_0:\mu=0$ is the integral over the two-dimensional posterior for which the posterior surprise function values
+$$\frac{p(\mu,\sigma|y)}{r(\mu,\sigma)}\geq \frac{p(\mu_0,\hat{\sigma}|y)}{r(\mu,\sigma)}$$
+Here, we have used a flat reference function $r(\mu,\sigma):=1$, and this is currently the only option in the fbst package when two-dimensional posteriors are used. Note further that as base R does not support multidimensional Gaussian kernel density estimation, the fbst package relies on the ks package for this task, and supports only posteriors up to dimension two.
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "600", out.height = "450"}
+plot(resFlat, type="persp", parNames=c("mu","sigma"))
+```
+The above plot shows the posterior surface for different values of $(\mu,\sigma)$ based on the simulated data. The evidence against the precise hypothesis $H_0:\mu=0$ is given as
+```{r}
+resFlat$eValue
+```
+The evidence against $H_0:\mu=0$ is thus quite large. Note that the standardized e-value can be obtained as in the one-dimensional posterior case: 
+```{r}
+resFlat$sev_H_0
+```
+Thus, based on the standardized e-value which makes use of asymptotic arguments we would reject the null hypothesis $H_0:\mu=0$.
+
+
+## References
+Kelter, R. (2022). The Evidence Interval and the Bayesian Evidence Value - On a unified theory for Bayesian hypothesis testing and interval estimation. British Journal of Mathematical and Statistical Psychology (2022). https://doi.org/10.1111/bmsp.12267
+
+Kelter, R. (2021). fbst: An R package for the Full Bayesian Significance Test for testing a sharp null hypothesis against its alternative via the e-value. Behav Res (2021). https://doi.org/10.3758/s13428-021-01613-6
+
+Pereira, C. A. d. B., & Stern, J. M. (2020). The e-value: a fully Bayesian significance measure for precise statistical hypotheses and its research program. São Paulo Journal of Mathematical Sciences, 1–19. https://doi.org/10.1007/s40863-020-00171-7
+
+Kelter, R. (2020). Analysis of Bayesian posterior significance and effect size indices for the two-sample t-test to support reproducible medical research. BMC Medical Research Methodology, 20(88). https://doi.org/https://doi.org/10.1186/s12874-020-00968-2
+
+Rouder, Jeffrey N., Paul L. Speckman, Dongchu Sun, Richard D. Morey, and Geoffrey Iverson. 2009. “Bayesian t tests for accepting and rejecting the null hypothesis.” Psychonomic Bulletin and Review 16 (2): 225–37. https://doi.org/10.3758/PBR.16.2.225

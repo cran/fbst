@@ -20,81 +20,136 @@
 #' @method 
 #' @export
 #' @examples
-fbst <- function(posteriorDensityDraws, nullHypothesisValue=0, FUN=NULL, par=NULL, dimensionTheta, dimensionNullset){
-  # Sort posterior draws ascending
-  postEffSizeSorted = sort(posteriorDensityDraws, decreasing = FALSE)
-  # Construct density of posterior effect size
-  postDens <- approxfun(density(postEffSizeSorted), rule = 2) # rule = 2 means: use closest data extreme for NA values produced
-    
-  # Calculate posterior density at the null set, that is at null hypothesis H_0: delta = 0
-  if(!is.null(FUN)) {
-    parNull = c(list(x=nullHypothesisValue),par)
-    densZero = postDens(nullHypothesisValue)/do.call(FUN, parNull) 
+fbst <- function(posteriorDensityDraws, nullHypothesisValue=0, FUN=NULL, par=NULL, dimensionTheta, dimensionNullset, dim=1, gridSize = 1000){
+  if(dim == 2){
+    #  Check whether a matrix of posterior draws has been submitted
+    if(class(posteriorDensityDraws)[1]!="matrix"){
+      stop("Please provide a matrix with two columns for the argument posteriorDensityDraws.")
     }
-  if(is.null(FUN)){ 
-    densZero = postDens(nullHypothesisValue)/1 
-  }
-  
-  # Calculate posterior density values for all posterior effect size samples
-  if(!is.null(FUN)){
-    par[[1]] = rep(par[[1]],length(posteriorDensityDraws))
-    par[[2]] = rep(par[[2]],length(posteriorDensityDraws))
-    par = c(list(x=postEffSizeSorted),par)
 
-    postDensValues = postDens(postEffSizeSorted)/do.call(FUN, par) # user defined reference function
-  } else {
-    postDensValues = postDens(postEffSizeSorted)/1 # flat reference function
-  }
-  
-  # Compute p-values for Bayesian evidence value in support of $H_0$
-  m_0 = postDens(nullHypothesisValue)
-  M_0 = bayestestR::map_estimate(postEffSizeSorted)[1]
-  d_0 = abs((m_0-M_0)^2)
-  # WARNING: The solution given in the 2008 paper is wrong. ev can be approximated as the upper tail of the 
-  # cumulative chi_k^2 distribution function starting from ||m-M||^2
-  p_value_ev_H_0 = 1-pchisq(d_0, df=dimensionNullset, lower.tail = TRUE)
-  
-  # Get indices of posterior draws belonging to the tangential set (flat prior)
-  indices = which(postDensValues > densZero)
-  
-  # Calculate posterior probability mass of tangential set to H_0: delta = 0 (this is the Bayesian evidence value against H, \bar{ev})
-  if (length(indices)>0){ # is there at least one posterior density value in the tangential set?
-    barEv = integrate(postDens, lower = postEffSizeSorted[min(indices)], upper = postEffSizeSorted[max(indices)], subdivisions = 2000)$value
-  } else { # tangential set is empty, Lebesgue-integral over it is zero then
+    # STEP 1 - Multivariate kernel density estimation
+    H = diag(c(1, 1)) # bandwith matrix
+    kde <- ks::kde(x = posteriorDensityDraws, H = H, gridsize = c(gridSize, gridSize)) # grid of size 2000x2000 in R^2 for creating the kernel density
+
+    # STEP 2 - Determine supremum of multivariate kernel density estimate over the null hypothesis set
+    index_nullHypothesisValue = min(which(round(kde$eval.points[[1]],2) %in% c(nullHypothesisValue)))
+    index_par2MaxTangentialSet = which.max(kde$estimate[index_nullHypothesisValue,])
+
+    kde_nullHypothesisValue_par2MaxTangentialSet = kde$estimate[index_nullHypothesisValue,index_par2MaxTangentialSet]
+
+    # STEP 3 - Evaluate the multivariate kernel density estimate at the posterior MCMC draws
+    kde_eval <- ks::kde(x = posteriorDensityDraws, H = H, gridsize = c(gridSize, gridSize),
+                        eval.points = posteriorDensityDraws) # grid of size gridSizexgridSize in R^2 for creating the kernel density
+    # note that we specify eval.points as the posteriorDensityDraws, this allows later to use the kernel density estimates
+    # at the values of the posterior draws we obtained
+    # thus, the call below simply evaluates the kde above at the posteriorDensityDraws values
+
+
+    # STEP 4 - Compute the evidence against the null hypothesis via Monte Carlo integration
+    # iterate over posterior draws
     barEv = 0
-  }
-  
-  if(barEv > 1){ # if integrate function makes some rounding errors set e-value against H_0 to 1, to avoid the quantile functions below to produce errors like NaN
-    barEv =1
-  }
-  if(barEv < 0){
-    barEv = 0
-  }
-  
-  # Compute standardized e-value sev(H_0)
-  sev_H_0 = 1-pchisq(qchisq(barEv, df=dimensionTheta),df=dimensionTheta-dimensionNullset)
-  
-  if (is.null(FUN)){
+    for(m in 1:nrow(kde_eval$eval.points)){
+      if(kde_eval$estimate[m] > kde_nullHypothesisValue_par2MaxTangentialSet){
+        # barEv = barEv + kde_eval$estimate[m]
+        barEv = barEv + 1
+      }
+    }
+    barEv = barEv / nrow(kde_eval$eval.points)
+
+    # set reference function string
     refString = "Flat"
-  } else {
-    refString = "User-defined"
-  }
-  # return fbst object
-  res = new("fbst", data = list(posteriorDensityDraws=posteriorDensityDraws,
-                                postEffSizeSorted=postEffSizeSorted,
-                                densZero=densZero,
-                                postDensValues=postDensValues,
-                                indices=indices,
-                                nullHypothesisValue=nullHypothesisValue,
-                                referenceFunction=refString,
-                                dimensionTheta=dimensionTheta,
-                                dimensionNullset=dimensionNullset,
-                                eValue=barEv,
-                                pValue=p_value_ev_H_0,
-                                sev_H_0 = sev_H_0))
-  res
-}
 
+    # Compute standardized e-value sev(H_0)
+    sev_H_0 = 1-pchisq(qchisq(barEv, df=dimensionTheta),df=dimensionTheta-dimensionNullset)
+    
+    # return fbst object
+    res = new("fbst", data = list(posteriorDensityDraws=posteriorDensityDraws,
+                                  postEffSizeSorted=sort(posteriorDensityDraws),
+                                  densZero=kde_nullHypothesisValue_par2MaxTangentialSet,
+                                  postDensValues=kde_eval$estimate,
+                                  indices=c(index_nullHypothesisValue,index_par2MaxTangentialSet),
+                                  nullHypothesisValue=nullHypothesisValue,
+                                  referenceFunction=refString,
+                                  dimensionTheta=dimensionTheta,
+                                  dimensionNullset=dimensionNullset,
+                                  eValue=barEv,
+                                  pValue=NULL,
+                                  sev_H_0 = sev_H_0))
+  } else {
+    # Sort posterior draws ascending
+    postEffSizeSorted = sort(posteriorDensityDraws, decreasing = FALSE)
+    # Construct density of posterior effect size
+    postDens <- approxfun(density(postEffSizeSorted), rule = 2) # rule = 2 means: use closest data extreme for NA values produced
+    
+    # Calculate posterior density at the null set, that is at null hypothesis H_0: delta = 0
+    if(!is.null(FUN)) {
+      parNull = c(list(x=nullHypothesisValue),par)
+      densZero = postDens(nullHypothesisValue)/do.call(FUN, parNull) 
+    }
+    if(is.null(FUN)){ 
+      densZero = postDens(nullHypothesisValue)/1 
+    }
+    
+    # Calculate posterior density values for all posterior effect size samples
+    if(!is.null(FUN)){
+      par[[1]] = rep(par[[1]],length(posteriorDensityDraws))
+      par[[2]] = rep(par[[2]],length(posteriorDensityDraws))
+      par = c(list(x=postEffSizeSorted),par)
+      
+      postDensValues = postDens(postEffSizeSorted)/do.call(FUN, par) # user defined reference function
+    } else {
+      postDensValues = postDens(postEffSizeSorted)/1 # flat reference function
+    }
+    
+    # Compute p-values for Bayesian evidence value in support of $H_0$
+    m_0 = postDens(nullHypothesisValue)
+    M_0 = bayestestR::map_estimate(postEffSizeSorted)[1]
+    d_0 = abs((m_0-M_0)^2)
+    # WARNING: The solution given in the 2008 paper is wrong. ev can be approximated as the upper tail of the 
+    # cumulative chi_k^2 distribution function starting from ||m-M||^2
+    p_value_ev_H_0 = 1-pchisq(d_0, df=dimensionNullset, lower.tail = TRUE)
+    
+    # Get indices of posterior draws belonging to the tangential set (flat prior)
+    indices = which(postDensValues > densZero)
+    
+    # Calculate posterior probability mass of tangential set to H_0: delta = 0 (this is the Bayesian evidence value against H, \bar{ev})
+    if (length(indices)>0){ # is there at least one posterior density value in the tangential set?
+      barEv = cubature::cubintegrate(postDens, lower = postEffSizeSorted[min(indices)], upper = postEffSizeSorted[max(indices)])$integral
+    } else { # tangential set is empty, Lebesgue-integral over it is zero then
+      barEv = 0
+    }
+    
+    if(barEv > 1){ # if integrate function makes some rounding errors set e-value against H_0 to 1, to avoid the quantile functions below to produce errors like NaN
+      barEv =1
+    }
+    if(barEv < 0){
+      barEv = 0
+    }
+    
+    # Compute standardized e-value sev(H_0)
+    sev_H_0 = 1-pchisq(qchisq(barEv, df=dimensionTheta),df=dimensionTheta-dimensionNullset)
+    
+    if (is.null(FUN)){
+      refString = "Flat"
+    } else {
+      refString = "User-defined"
+    }
+    # return fbst object
+    res = new("fbst", data = list(posteriorDensityDraws=posteriorDensityDraws,
+                                  postEffSizeSorted=postEffSizeSorted,
+                                  densZero=densZero,
+                                  postDensValues=postDensValues,
+                                  indices=indices,
+                                  nullHypothesisValue=nullHypothesisValue,
+                                  referenceFunction=refString,
+                                  dimensionTheta=dimensionTheta,
+                                  dimensionNullset=dimensionNullset,
+                                  eValue=barEv,
+                                  pValue=p_value_ev_H_0,
+                                  sev_H_0 = sev_H_0))
+  }
+  return(res)
+}
 
 
 #' fbst class
@@ -137,8 +192,9 @@ fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
   
   # Calculate surprise function values for all posterior effect size samples
   if(!is.null(FUN)){ # reference function provided
-    par[[1]] = rep(par[[1]],length(posteriorDensityDraws))
-    par[[2]] = rep(par[[2]],length(posteriorDensityDraws))
+    for(i in 1:length(par)){
+      par[[i]] = rep(par[[i]],length(posteriorDensityDraws))
+    }
     par = c(list(x=postEffSizeSorted),par)
     
     postDensValues = postDens(postEffSizeSorted)/do.call(FUN, par) # user defined reference function
@@ -148,7 +204,7 @@ fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
   
   if(nu==0 && is.null(FUN)){ # if flat ref function and nu == 0 the posterior is the surprise function
     evidenceInterval = c(-Inf,Inf)
-    bayesianEvidenceValueIntervalNullHyp = integrate(postDens, lower = interval[1], upper = interval[2], subdivisions = 2000)$value
+    bayesianEvidenceValueIntervalNullHyp = cubintegrate(postDens, lower = interval[1], upper = interval[2])$integral
     bayesianEvidenceValueAlternative = 1-bayesianEvidenceValueIntervalNullHyp
     indices = "All"
     # rounding errors
@@ -169,11 +225,11 @@ fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
       evidenceInterval = "Empty set"
     }
     
-    if(class(evidenceInterval) != "character"){ # evidence interval is not the empty set? then compute Bayesian evidence values
+    if(!inherits(evidenceInterval, "character")){ # evidence interval is not the empty set? then compute Bayesian evidence values
       # Calculate the Bayesian evidence value for the interval null hypothesis
       if (length(indices)>0 && max(evidenceInterval[1],interval[1])<min(evidenceInterval[2],interval[2])){ # is there at least one posterior density value in the expanded tangential set?
         # integrate over intersection between the evidence interval and rope, indices [1] and [2] denote the lower and upper bounds of the evidence interval and rope
-        bayesianEvidenceValueIntervalNullHyp = integrate(postDens, lower = max(evidenceInterval[1],interval[1]), upper = min(evidenceInterval[2],interval[2]), subdivisions = 2000)$value
+        bayesianEvidenceValueIntervalNullHyp = cubintegrate(postDens, lower = max(evidenceInterval[1],interval[1]), upper = min(evidenceInterval[2],interval[2]))$integral
       } else { # expanded tangential set is empty, Lebesgue-integral over an empty set is zero then
         bayesianEvidenceValueIntervalNullHyp = 0
       }
@@ -184,7 +240,7 @@ fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
         from.z <- evidenceInterval[1]
         to.z <- evidenceInterval[2]
         
-        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z, subdivisions = 2000)$value
+        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
       }
       
       if(evidenceInterval[1]>interval[2] && evidenceInterval[2]>interval[2]){
@@ -192,7 +248,7 @@ fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
         from.z <- evidenceInterval[1]
         to.z <- evidenceInterval[2]
         
-        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z, subdivisions = 2000)$value
+        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
       }
       
       if(evidenceInterval[1]<interval[1] && evidenceInterval[2]>interval[1]){
@@ -200,7 +256,7 @@ fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
         from.z <- evidenceInterval[1]
         to.z <- interval[1]
         
-        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z, subdivisions = 2000)$value
+        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
       }
       
       if(evidenceInterval[1]<interval[2] && evidenceInterval[2]>interval[2]){
@@ -208,7 +264,7 @@ fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
         from.z <- interval[2]
         to.z <- evidenceInterval[2]
         
-        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + integrate(postDens, lower = from.z, upper = to.z, subdivisions = 2000)$value
+        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
       }
       
       # rounding errors
@@ -279,39 +335,61 @@ setClass("fbet", representation(data="list"),
 #' plot object of class fbst
 #' @usage \\method{plot}{fbst}(x, ...)
 #' @export
-plot.fbst <- function(x, ..., leftBoundary= -100, rightBoundary = 100){
-  postDens <- approxfun(x=x$postEffSizeSorted,y=x$postDensValues, rule = 2)
-  # prior-posterior plot
-  plot(x$postEffSizeSorted,x$postDensValues,ty="l",lty=1,xlim=c(min(x$postEffSizeSorted),max(x$postEffSizeSorted)),
-       main="",ylab="surprise function density",xlab="Parameter")
-  
-  # tangential area
-  from.z <- x$postEffSizeSorted[min(x$indices)]
-  to.z <- x$postEffSizeSorted[max(x$indices)]
-  
-  S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
-  S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
-  polygon(S.x,S.y, col = rgb(red = 0, green = 0.8, blue = 1, alpha = 1))
-  
-  # left tail (null) area
-  from.z <- leftBoundary
-  to.z <- x$postEffSizeSorted[min(x$indices)]
-  
-  # plot(postEffSizeSorted,postDensValues,ty="l", main = "", xlab = expression(paste("p(", delta, "| x)")), ylab = "Density")
-  S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
-  S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
-  polygon(S.x,S.y, col = rgb(red = 1, green = 0, blue = 0, alpha = 1))
-  
-  # right tail (null) area
-  from.z <- x$postEffSizeSorted[max(x$indices)]
-  to.z <- rightBoundary
-  S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
-  S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
-  polygon(S.x,S.y, col = rgb(red = 1, green = 0, blue = 0, alpha = 1))
-  
-  # null density value and separating line for tangential set
-  points(x=0,y=x$densZero,col="blue",pch=19)
-  abline(h=x$densZero,lty=2,lwd=1,col="blue")
+plot.fbst <- function(x, ..., leftBoundary= -100, rightBoundary = 100, type = "contour", parNames = NULL){
+  if(inherits(x$posteriorDensityDraws, "numeric")){
+    postDens <- approxfun(x=x$postEffSizeSorted,y=x$postDensValues, rule = 2)
+    # prior-posterior plot
+    plot(x$postEffSizeSorted,x$postDensValues,ty="l",lty=1,xlim=c(min(x$postEffSizeSorted),max(x$postEffSizeSorted)),
+         main="",ylab="density",xlab="Parameter")
+    
+    # tangential area
+    from.z <- x$postEffSizeSorted[min(x$indices)]
+    to.z <- x$postEffSizeSorted[max(x$indices)]
+    
+    S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
+    S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
+    polygon(S.x,S.y, col = rgb(red = 0, green = 0.8, blue = 1, alpha = 1))
+    
+    # left tail (null) area
+    from.z <- leftBoundary
+    to.z <- x$postEffSizeSorted[min(x$indices)]
+    
+    # plot(postEffSizeSorted,postDensValues,ty="l", main = "", xlab = expression(paste("p(", delta, "| x)")), ylab = "Density")
+    S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
+    S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
+    polygon(S.x,S.y, col = rgb(red = 1, green = 0, blue = 0, alpha = 1))
+    
+    # right tail (null) area
+    from.z <- x$postEffSizeSorted[max(x$indices)]
+    to.z <- rightBoundary
+    S.x  <- c(from.z, seq(from.z, to.z, by = 0.0001), to.z)
+    S.y  <- c(0, postDens(seq(from.z, to.z, 0.0001)), 0)
+    polygon(S.x,S.y, col = rgb(red = 1, green = 0, blue = 0, alpha = 1))
+    
+    # null density value and separating line for tangential set
+    points(x=0,y=x$densZero,col="blue",pch=19)
+    abline(h=x$densZero,lty=2,lwd=1,col="blue")
+  }
+  if(inherits(x$posteriorDensityDraws, "matrix")){
+    # Contour plot
+    if(type == "contour"){
+      H = diag(c(1, 1))
+      kde <- ks::kde(x = x$posteriorDensityDraws, H = H, gridsize = c(1000, 1000))
+      # contour plot
+      graphics::image(kde$eval.points[[1]], kde$eval.points[[2]], kde$estimate,
+            col = viridis::viridis(20), xlab = parNames[1], ylab = parNames[2])
+      points(kde$x)
+      index_nullHypothesisValue = min(which(round(kde$eval.points[[1]],2) %in% c(x$nullHypothesisValue)))
+      index_par2MaxTangentialSet = which.max(kde$estimate[index_nullHypothesisValue,])
+      kde_nullHypothesisValue_par2MaxTangentialSet = kde$estimate[index_nullHypothesisValue,index_par2MaxTangentialSet]
+      points(kde$eval.points[[1]][index_nullHypothesisValue],kde$eval.points[[2]][index_par2MaxTangentialSet],col="magenta",pch=18)
+    }
+    if(type == "persp"){
+      H = diag(c(1, 1))
+      kde <- ks::kde(x = x$posteriorDensityDraws, H = H, gridsize = c(250, 250))
+      plot(kde, display = "persp", col.fun = viridis::viridis, xlab = parNames[1], ylab = parNames[2])
+    }
+  }
 }
 
 
@@ -319,11 +397,18 @@ plot.fbst <- function(x, ..., leftBoundary= -100, rightBoundary = 100){
 #' plot object of class fbet
 #' @usage \\method{plot}{fbet}(x, ...)
 #' @export
-plot.fbet <- function(x, ..., leftBoundary= -100, rightBoundary = 100){
-  postDens <- approxfun(x=x$posteriorDensityDrawsSorted,y=x$postDensValues, rule = 2)
-  # prior-posterior plot
-  plot(x$posteriorDensityDrawsSorted,x$postDensValues,ty="l",lty=1,xlim=c(min(x$posteriorDensityDrawsSorted),max(x$posteriorDensityDrawsSorted)),
-       main="",ylab="surprise function density",xlab="Parameter")
+plot.fbet <- function(x, ..., leftBoundary= -100, rightBoundary = 100, type = "posterior", legendposition = "topleft", main = ""){
+  if(type=="surprise"){
+    postDens <- approxfun(x=x$posteriorDensityDrawsSorted,y=x$postDensValues, rule = 2)
+    # prior-posterior plot
+    plot(x$posteriorDensityDrawsSorted,x$postDensValues,ty="l",lty=1,xlim=c(min(x$posteriorDensityDrawsSorted),max(x$posteriorDensityDrawsSorted)),
+         main=main,ylab="density",xlab="Parameter")
+  }
+  if(type=="posterior"){
+    postDens <- approxfun(density(x$posteriorDensityDraws))
+    plot(density(x$posteriorDensityDraws),ty="l",lty=1,xlim=c(min(x$posteriorDensityDrawsSorted),max(x$posteriorDensityDrawsSorted)),
+         main=main,ylab="density",xlab="Parameter")
+  }
   
   # Visualize interval hypothesis
   abline(v=x$interval[1],lty=2,lwd=1,col="blue")
@@ -405,11 +490,18 @@ plot.fbet <- function(x, ..., leftBoundary= -100, rightBoundary = 100){
     }
   }
   
-  # separating line for evidence-threshold nu used for the Bayesian evidence interval
-  abline(h=x$nu,lty=2,lwd=1,col="black")
+  if(type=="surprise"){
+    # separating line for evidence-threshold nu used for the Bayesian evidence interval
+    abline(h=x$nu,lty=2,lwd=1,col="black")
+    
+    graphics::legend(legendposition, legend=c("surprise function density", "Null hypothesis", "Evidence Interval", "Evidence threshold"),
+                     col=c("black", "blue", "blue", "black"), lty=c(1,2,1,2), cex=1)
+  }
+  if(type=="posterior"){
+    graphics::legend(legendposition, legend=c("posterior density", "Null hypothesis", "Evidence Interval"),
+                     col=c("black", "blue", "blue"), lty=c(1,2,1), cex=1)
+  }
   
-  graphics::legend("topleft", legend=c("surprise function", "Null hypothesis", "Evidence Interval", "Evidence threshold"),
-         col=c("black", "blue", "blue", "black"), lty=c(1,2,1,2), cex=1)
 }
 
 
@@ -423,6 +515,7 @@ summary.fbst <- function(object, ...){
   cat("Reference function:", object$referenceFunction, "\n")
   cat("Hypothesis H_0:Parameter=", object$nullHypothesisValue, "against its alternative H_1\n")
   cat("Bayesian e-value against H_0:", object$eValue, "\n")
+  
   cat("Standardized e-value:", object$sev_H_0, "\n")
 }
 
@@ -496,4 +589,30 @@ names.fbet <- function(x){
   names(x@data)
 }
 
+
+bdm <- function(posteriorDensityDraws, nullHypothesisValue=0){
+  # Step 1: Compute median of posterior draws
+  m=stats::median(posteriorDensityDraws)
+  # Step 2: Define discrepancy interval
+  if(m<nullHypothesisValue){
+    I_H=c(m,nullHypothesisValue)
+  }
+  if(m==nullHypothesisValue){
+    I_H=m
+  }
+  if(m>nullHypothesisValue){
+    I_H=c(nullHypothesisValue,m)
+  }
+  # Step 3: Build kernel density estimate of posterior
+  # Sort posterior draws ascending
+  postEffSizeSorted = sort(posteriorDensityDraws, decreasing = FALSE)
+  # Construct density of posterior effect size
+  postDens <- approxfun(density(postEffSizeSorted), rule = 2) # rule = 2 means: use closest data extreme for NA values produced
+  
+  # Step 4: Integrate over discrepancy interval and double the value, which is the BDM
+  bdm = 2 * cubature::cubintegrate(postDens, lower = I_H[1], upper = I_H[2])$integral
+  
+  # Step 5: return BDM
+  return(bdm)
+}
 

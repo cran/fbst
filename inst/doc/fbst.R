@@ -4,6 +4,9 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 
+## ----setup--------------------------------------------------------------------
+library(fbst)
+
 ## -----------------------------------------------------------------------------
 sleep
 
@@ -14,11 +17,10 @@ grp2 = sleep[11:20,]$extra
 ttestBF(x=grp1,y=grp2, rscale="medium")
 
 ## -----------------------------------------------------------------------------
-posteriorDraws = ttestBF(x=grp1,y=grp2, rscale="medium", posterior = TRUE, 
-                         iterations = 100000)[,4]
-library(fbst)
-result = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0, 
-              dimensionTheta = 2, dimensionNullset = 1)
+posteriorDraws = as.numeric(ttestBF(x=grp1,y=grp2, rscale="medium", posterior = TRUE, 
+                         iterations = 100000)[,4])
+result = fbst(posteriorDensityDraws = posteriorDraws, nullHypothesisValue = 0,
+              dimensionTheta = 2, dimensionNullset = 1, dim = 1)
 summary(result)
 
 ## ----fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"----

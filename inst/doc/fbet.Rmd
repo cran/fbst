@@ -91,7 +91,7 @@ sleep
 ```
 We select both groups and perform a traditional Bayes factor two-sample t-test based on the model of Rouder et al. (2009):
 ```{r}
-library(BayesFactor)
+require(BayesFactor)
 grp1 = sleep[1:10,]$extra
 grp2 = sleep[11:20,]$extra
 ttestBF(x=grp1,y=grp2, rscale="medium")
@@ -109,9 +109,9 @@ set.seed(42)
 result = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.1,0.1), nu=0)
 summary(result)
 ```
-The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0:\theta \in [-0.1,0.1]$ is equal to $0.07$, while the Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1$  is equal to $0.93$. Thus, the evidence for the alternative $H_1:\theta \notin [-0.1,0.1]$ is much stronger. In fact, $92.69\%$ of the posterior probability mass are located outside the interval $[-0.1,0.1]$, which is expressed by the Bayesian evidence value in favour of $H_0$. The following plot illustrates this result:
+The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0:\theta \in [-0.1,0.1]$ is equal to $0.072$, while the Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1$  is equal to $0.92$. Thus, the evidence for the alternative $H_1:\theta \notin [-0.1,0.1]$ is much stronger. In fact, $92\%$ of the posterior probability mass are located outside the interval $[-0.1,0.1]$, which is expressed by the Bayesian evidence value in favour of $H_0$. The following plot illustrates this result:
 ```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
-plot(result)
+plot(result, type = "surprise")
 ```
 
 The blue area amounts to the $7\%$ of posterior probability mass which are located inside $[-0.1,0.1]$ and corroborate the null hypothesis $H_0$ based on the chosen ROPE $R:=[-0.1,0.1]$ around $\theta_0:=0$. However, the evidence threshold $\nu=0$ requires no form of corroboration for the parameter values $\theta$ after observing the data $y$, which is shown in the above plot: The evidence threshold is not visible, as it is a horizontal dashed line at the ordinate $y=0$.
@@ -123,7 +123,7 @@ result2 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), n
 summary(result2)
 ```
 ```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
-plot(result2)
+plot(result2, type = "surprise")
 ```
 
 ### Example 2: Two-sample t-test with user-specified reference function
@@ -136,10 +136,10 @@ summary(result3)
 ```
 Now, based on the different reference function and evidence threshold, we see that the resulting Bayesian evidence values change accordingly. Below, the situation is illustrated:
 ```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
-plot(result3)
+plot(result3, type="surprise")
 ```
 
-The horizontal dashed line shows the evidence-threshold $\nu=1$, and only parameter values $\theta$ which fulfill $p(\theta|y)/p(\theta)\geq 1$ are included in the Bayesian evidence interval $\text{EI}_r(1)$. The resulting Bayesian evidence interval $\text{EI}_r(1)$ is shown as the vertical blue lines in the plot. The ROPE (or the interval hypothesis) $R:=[-0.1,0.1]$ is shown as the dashed vertical blue lines, and the resulting Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0:=\theta \in R$ is visualized as the blue area, which amounts to $2.06\%$ of the posterior probability mass. The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1:=\theta \notin R$ is given as $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)=0.8733$, which shows that $87.33\%$ of the posterior probability mass confirm the interval null hypothesis specified via $R:=[-0.1,0.1]$. It should be clear by now that omitting the ROPE $R$ and instead switching towards an interval hypothesis $H_0$ from the start only simplifies the notation. Henceforth, we therefore only speak of $H_0$.
+The horizontal dashed line shows the evidence-threshold $\nu=1$, and only parameter values $\theta$ which fulfill $p(\theta|y)/p(\theta)\geq 1$ are included in the Bayesian evidence interval $\text{EI}_r(1)$. The resulting Bayesian evidence interval $\text{EI}_r(1)$ is shown as the vertical blue lines in the plot. The ROPE (or the interval hypothesis) $R:=[-0.1,0.1]$ is shown as the dashed vertical blue lines, and the resulting Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0:=\theta \in R$ is visualized as the blue area, which amounts to $2.00\%$ of the posterior probability mass. The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1:=\theta \notin R$ is given as $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)=0.8733$, which shows that $87.42\%$ of the posterior probability mass confirm the interval null hypothesis specified via $R:=[-0.1,0.1]$. It should be clear by now that omitting the ROPE $R$ and instead switching towards an interval hypothesis $H_0$ from the start only simplifies the notation. Henceforth, we therefore only speak of $H_0$.
 
 Now, if we choose a different interval hypothesis $H_0:=[-0.2,0.2]$, we obtain:
 ```{r}
@@ -149,9 +149,12 @@ summary(result4)
 ```
 Now, based on the different reference function and evidence threshold, we see that the resulting Bayesian evidence values change accordingly: The evidence for the null hypothesis grows, while the evidence for the alternative decreases. Below, the situation is illustrated:
 ```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
+plot(result4, type="surprise")
+```
+Next to plotting the surprise function we can also plot the resulting posterior density and visualize the evidence values. Therefore, we just need to omit the type argument.
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
 plot(result4)
 ```
-
 Also, we could require that values need to be corroborated in a stronger form by choosing for example $\nu=2$. Then, every value inside the Bayesian evidence interval has at least twice the value of the corresponding reference function $r(\theta)$. In the above example, we obtain:
 ```{r}
 set.seed(42)
@@ -167,7 +170,7 @@ plot(result5)
 In this vignette it was demonstrated how to perform the Full Bayesian Evidence Test (FBET) for testing an interval hypothesis in the Bayesian paradigm. It was shown that the FBET can be applied to a wide range of statistical models as long as the posterior is obtainable via standard MCMC algorithms. Thus, the FBET presents a flexible approach to Bayesian hypothesis testing while being fully coherent with the likelihood principle and the associated benefits (e.g. the irrelevance of stopping rules, the irrelevance of censoring mechanisms). Also, the assumption of an interval hypothesis is often more realistic than the assumption of a precise point null hypothesis, and the Bayesian evidence value provides a convenient way to quantify the evidence for a hypothesis based on the Bayesian evidence interval. Furthermore, the requirement of different strength of evidence can be incorporated into the analysis. Theoretical details can be found in Kelter (2022).
 
 ## References
-Kelter, R. (2022). The Evidence Interval and the Bayesian Evidence Value - On a unified theory for Bayesian hypothesis testing and interval estimation. British Journal of Mathematical and Statistical Psychology (2022), in press.
+Kelter, R. (2022). The Evidence Interval and the Bayesian Evidence Value - On a unified theory for Bayesian hypothesis testing and interval estimation. British Journal of Mathematical and Statistical Psychology (2022). https://doi.org/10.1111/bmsp.12267
 
 Kelter, R. (2021). fbst: An R package for the Full Bayesian Significance Test for testing a sharp null hypothesis against its alternative via the e-value. Behav Res (2021). https://doi.org/10.3758/s13428-021-01613-6
 

@@ -9,7 +9,7 @@ plot.fbst
 Plots the results of a Full Bayesian Significance Test.
 }
 \usage{
-\method{plot}{fbst}(x, ..., leftBoundary = -100, rightBoundary = 100)
+\method{plot}{fbst}(x, ..., leftBoundary = -100, rightBoundary = 100, type = "contour", parNames = NULL)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -24,6 +24,12 @@ Plots the results of a Full Bayesian Significance Test.
   }
   \item{rightBoundary}{
     x-coordinate for the right boundary to which is used for visualising the evidence in support of the null hypothesis. Defaults to 100.
+  }
+  \item{type}{
+    Relevant only if dim=2. Defaults to "contour" which provides a contour plot of the posterior, with a magenta point that shows the supremum over the null set. Alternatively, "persp" provides a 3-dimensional perspective plot of the posterior.
+  }
+  \item{parNames}{
+    Vector of two entries which specifies the names for the parameters. Only relevant if dimensionTheta=2.
   }
 }
 \details{
