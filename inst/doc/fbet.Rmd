@@ -84,53 +84,55 @@ Again, as a sidenote it is worth mentioning that the Bayes factor is simply a di
 Now, we illustrate the FBST with two examples below. The first example is a Bayesian two-sample t-test with flat reference function, and the second example the same test with a user-defined reference function.
 
 ## Examples
-### Example 1: Two-sample t-test with flat reference function
+### Example 1: Paired-sample t-test with flat reference function
 We use Student's sleep data as illustration, which is available in the data frame `sleep`.
 ```{r}
 sleep
 ```
-We select both groups and perform a traditional Bayes factor two-sample t-test based on the model of Rouder et al. (2009):
+We select both groups and perform a traditional Bayes factor paired-sample t-test based on the model of Rouder et al. (2009). There, the null hypothesis states that the standardized effect size $\delta:=(\mu-\mu_0)/\sigma$ is assumed to be zero under $H_0$, and Cauchy-distributed under the alternative $H_1$, $\delta \sim C(0,\gamma)$ for $\gamma>0$.
 ```{r}
 require(BayesFactor)
 grp1 = sleep[1:10,]$extra
 grp2 = sleep[11:20,]$extra
-ttestBF(x=grp1,y=grp2, rscale="medium")
+diff = grp1 - grp2
+ttestBF(x = grp1, y = grp2, rscale = "medium", paired = TRUE)
 ```
-Based on a traditional Bayes factor test, there is not much evidence for the alternative: $BF_{10}=1.27$. However, note that the precise Bayes factor tests the point-null hypothesis $H_0:\delta=0$ of exactly *no* effect. Without observing any data $y$, we can be reasonable sure that the effect size $\delta$ will almost surely not be *exactly* zero, so an interval hypothesis which separates scientifically meaningful from scientifically irrelevant parameter values constitutes a more adequate test in such a situation (interval Bayes factors would be more adequate when sticking to Bayes factors).
+Based on a traditional Bayes factor test, there is strong evidence for the alternative $H_1:\delta \neq 0$: $BF_{10}=17.25$ according to Jeffreys (1961). However, note that the precise Bayes factor tests the point-null hypothesis $H_0:\delta=0$ of exactly *no* effect, that is, no difference between both population means. Without observing any data $y$, we can be reasonable sure that the effect size $\delta$ will almost surely not be *exactly* zero, so an interval hypothesis which separates scientifically meaningful from scientifically irrelevant parameter values constitutes a more adequate test in such a situation (interval Bayes factors would be more adequate when sticking to Bayes factors).
 
-Therefore, we now obtain posterior MCMC samples and conduct the FBET based on a flat reference function $r(\theta):=1$. We use the evidence threshold $\nu=0$, which implies that the surprise function $s(\theta)=p(\theta|y)/r(\theta)$ reduces to the posterior density $p(\theta|y)$ and the Bayesian evidence interval $\text{EI}_r(\nu)$ becomes $\text{EI}_r(0)$, which includes all parameter values $\theta \in \Theta$ with positive posterior density $p(\theta|y)>0$.
+Therefore, we now obtain posterior MCMC samples and conduct the FBET based on a flat reference function $r(\theta):=1$. We use the evidence threshold $\nu=0$, which implies that the surprise function $s(\theta)=p(\theta|y)/r(\theta)$ reduces to the posterior density $p(\theta|y)$ and the Bayesian evidence interval $\text{EI}_r(\nu)$ becomes $\text{EI}_r(0)$, which includes all parameter values $\theta \in \Theta$ with positive posterior density $p(\theta|y)\geq 0$.
+
 ```{r}
 set.seed(42)
-posteriorDraws = ttestBF(x=grp1,y=grp2, rscale="medium", posterior = TRUE, 
-                         iterations = 100000)[,4]
+posteriorDraws = ttestBF(x = grp1, y = grp2, rscale = "medium", paired = TRUE,
+                         posterior = TRUE, iterations = 100000)[,3]
 ```
 ```{r}
 set.seed(42)
-result = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.1,0.1), nu=0)
+result = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=0)
 summary(result)
 ```
-The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0:\theta \in [-0.1,0.1]$ is equal to $0.072$, while the Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1$  is equal to $0.92$. Thus, the evidence for the alternative $H_1:\theta \notin [-0.1,0.1]$ is much stronger. In fact, $92\%$ of the posterior probability mass are located outside the interval $[-0.1,0.1]$, which is expressed by the Bayesian evidence value in favour of $H_0$. The following plot illustrates this result:
+The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0:\theta \in [-0.1,0.1]$ is equal to $0.014$, while the Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1$  is equal to $0.986$. Thus, the evidence for the alternative $H_1:\theta \notin [-0.1,0.1]$ is much stronger than the evidence in favour of $H_0$. In fact, $98.6\%$ of the posterior probability mass are located outside the interval $[-0.1,0.1]$, which is expressed by the Bayesian evidence value in favour of $H_1$. The following plot illustrates this result:
 ```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
-plot(result, type = "surprise")
+plot(result, type = "posterior")
 ```
 
-The blue area amounts to the $7\%$ of posterior probability mass which are located inside $[-0.1,0.1]$ and corroborate the null hypothesis $H_0$ based on the chosen ROPE $R:=[-0.1,0.1]$ around $\theta_0:=0$. However, the evidence threshold $\nu=0$ requires no form of corroboration for the parameter values $\theta$ after observing the data $y$, which is shown in the above plot: The evidence threshold is not visible, as it is a horizontal dashed line at the ordinate $y=0$.
+The blue area amounts to the $0.5\%$ of posterior probability mass which are located inside $[-0.1,0.1]$ and corroborate the null hypothesis $H_0$ based on the chosen ROPE $R:=[-0.1,0.1]$ around $\theta_0:=0$. However, the evidence threshold $\nu=0$ requires no form of corroboration for the parameter values $\theta$ after observing the data $y$, which is shown in the above plot: The evidence threshold is not visible, as it is a horizontal dashed line at the ordinate $y=0$.
 
-If we choose a different ROPE $R:=[-0.2,0.2]$, we obtain:
+If we choose a different hypothesis $H_0:\delta \in (-0.25,0.25)$, we obtain:
 ```{r}
 set.seed(42)
-result2 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), nu=0)
+result2 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.25,0.25), nu=0)
 summary(result2)
 ```
 ```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
-plot(result2, type = "surprise")
+plot(result2, type = "posterior")
 ```
 
-### Example 2: Two-sample t-test with user-specified reference function
-In the above, a flat reference function $r(\theta):=1$ was used in the surprise function $s(\theta)$ and the evidence threshold $\nu$ was set to zero. However, the prior distribution on the parameter $\theta$ was a medium Cauchy prior $C(0,\sqrt{2}/2)$. As the prior beliefs are reflected via this prior, it is reasonable to choose the Cauchy prior as the reference function instead (then, the surprise function is equal to what Good (1968) motivated as statistical information, providing an independent justification of the expanded tangential set; the latter includes parameter values which are informative with regard to the hypothesis under consideration). Below, it is shown how to do this. Also, the evidence threshold $\nu$ is set to $\nu=1$, so that only parameter values $\theta$ are included in the Bayesian evidence interval $\text{EI}_r(1)$ which attain a larger posterior density value than the corresponding prior density value:
+### Example 2: Paired-sample t-test with user-specified reference function
+In the above, a flat reference function $r(\theta):=1$ was used in the surprise function $s(\theta)$ and the evidence threshold $\nu$ was set to zero. However, the prior distribution on the parameter $\theta$ was a medium Cauchy prior $C(0,\sqrt{2}/2)$. As the prior beliefs are reflected via this prior, it is reasonable to choose the Cauchy prior as the reference function instead (then, the surprise function is equal to what Good (1968) motivated as statistical information, providing an independent justification of the expanded tangential set; the latter includes parameter values which are informative with regard to the hypothesis under consideration). Below, it is shown how to do this. Also, the evidence threshold $\nu$ is set to $\nu=1$, so that only parameter values $\theta$ are included in the Bayesian evidence interval $\text{EI}_r(1)$ which attain a larger posterior density value than the corresponding prior density value. This time, we test $H_0:\delta \in (-0.5,0.5)$ against $H_1:\delta \notin (-0.5,0.5)$:
 ```{r}
 set.seed(42)
-result3 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.1,0.1), 
+result3 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.5,0.5), 
                nu=1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
 summary(result3)
 ```
@@ -139,15 +141,15 @@ Now, based on the different reference function and evidence threshold, we see th
 plot(result3, type="surprise")
 ```
 
-The horizontal dashed line shows the evidence-threshold $\nu=1$, and only parameter values $\theta$ which fulfill $p(\theta|y)/p(\theta)\geq 1$ are included in the Bayesian evidence interval $\text{EI}_r(1)$. The resulting Bayesian evidence interval $\text{EI}_r(1)$ is shown as the vertical blue lines in the plot. The ROPE (or the interval hypothesis) $R:=[-0.1,0.1]$ is shown as the dashed vertical blue lines, and the resulting Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0:=\theta \in R$ is visualized as the blue area, which amounts to $2.00\%$ of the posterior probability mass. The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1:=\theta \notin R$ is given as $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)=0.8733$, which shows that $87.42\%$ of the posterior probability mass confirm the interval null hypothesis specified via $R:=[-0.1,0.1]$. It should be clear by now that omitting the ROPE $R$ and instead switching towards an interval hypothesis $H_0$ from the start only simplifies the notation. Henceforth, we therefore only speak of $H_0$.
+The horizontal dashed line shows the evidence-threshold $\nu=1$, and only parameter values $\theta$ which fulfill $p(\theta|y)/p(\theta)\geq 1$ are included in the Bayesian evidence interval $\text{EI}_r(1)$. The resulting Bayesian evidence interval $\text{EI}_r(1)$ is shown as the vertical blue lines in the plot. The interval hypothesis $H_0:=(-0.5,0.5)$ is shown as the dashed vertical blue lines, and the resulting Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_0)$ in favour of $H_0$ is visualized as the blue area, which amounts to $1.75\%$ of the posterior probability mass. The Bayesian evidence value $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)$ in favour of $H_1$ is given as $\text{Ev}_{\text{EI}_r(\nu)}^{R}(H_1)=0.9117$, which shows that $91.17\%$ of the posterior probability mass confirm the alternative. It should be clear by now that omitting the ROPE $R$ and instead switching towards an interval hypothesis $H_0$ from the start only simplifies the notation. Henceforth, we therefore only speak of $H_0$.
 
-Now, if we choose a different interval hypothesis $H_0:=[-0.2,0.2]$, we obtain:
+Now, if we choose a different interval hypothesis $H_0:=(-0.2,0.2)$, we obtain:
 ```{r}
 result4 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), 
                nu=1, FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
 summary(result4)
 ```
-Now, based on the different reference function and evidence threshold, we see that the resulting Bayesian evidence values change accordingly: The evidence for the null hypothesis grows, while the evidence for the alternative decreases. Below, the situation is illustrated:
+Now, based on the different reference function and evidence threshold, we see that the resulting Bayesian evidence values change accordingly: The evidence for the null hypothesis reduces, while the evidence for the alternative has increased. Below, the situation is illustrated:
 ```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
 plot(result4, type="surprise")
 ```
@@ -162,8 +164,13 @@ result5 = fbet(posteriorDensityDraws = posteriorDraws, interval = c(-0.2,0.2), n
                FUN = dcauchy, par=list(location = 0, scale = sqrt(2)/2))
 summary(result5)
 ```
+Evidently, as the evidence for $H_0$ was already zero, the only thing which changes in this different setting now is that the evidence in favour of $H_1$ decreases to about $85.57\%$. Thus, compared to the previous example we are now less than $90\%$ sure that the alternative hypothesis holds. To arrive at this conclusion, we must, however, accept that the reference function is sensible, and that we regard parameter values as evidential in favour of the null or alternative only if the ratio of posterior to prior density is at least $\nu=2$. The following plot visualizes the posterior in this setting:
 ```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
 plot(result5)
+```
+In contrast, note that the surprise function plot differs. Importantly, the evidence threshold $\nu$ is now equal to $2$:
+```{r,fig.align='center', dpi=300, fig.width = 7, fig.height = 5, out.width = "500", out.height = "350"}
+plot(result5, type = "surprise")
 ```
 
 ## Conclusion
@@ -181,5 +188,7 @@ Kelter, R. (2020). Analysis of Bayesian posterior significance and effect size i
 Rouder, Jeffrey N., Paul L. Speckman, Dongchu Sun, Richard D. Morey, and Geoffrey Iverson. 2009. Bayesian t tests for accepting and rejecting the null hypothesis. Psychonomic Bulletin and Review 16 (2): 225–37. https://doi.org/10.3758/PBR.16.2.225
 
 Good, I. J. (1968). Corroboration, Explanation, Evolving Probability, Simplicity and a Sharpened Razor. The British Journal for the Philosophy of Science, Vol. 19, Issue 2. https://www.journals.uchicago.edu/doi/10.1093/bjps/19.2.123
+
+Jeffreys, H. (1961). Theory of Probability. In Oxford Classic Texts in the Physical Sciences (3rd ed.). Oxford University Press.
 
 Hodges, J. L., & Lehmann, E. L. (1954). Testing the Approximate Validity of Statistical Hypotheses. Journal of the Royal Statistical Society: Series B (Methodological), 16 (2), 261–268. https://doi.org/10.1111/j.2517-6161.1954.tb00169.x

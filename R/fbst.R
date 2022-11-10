@@ -184,89 +184,37 @@ setClass("fbst", representation(data="list"),
 #' @method 
 #' @export
 #' @examples
-fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
-  # Sort posterior draws ascending
-  postEffSizeSorted = sort(posteriorDensityDraws, decreasing = FALSE)
-  # Construct density of posterior effect size
-  postDens <- approxfun(density(postEffSizeSorted), rule = 2) # rule = 2 means: use closest data extreme for NA values produced
-  
-  # Calculate surprise function values for all posterior effect size samples
-  if(!is.null(FUN)){ # reference function provided
-    for(i in 1:length(par)){
-      par[[i]] = rep(par[[i]],length(posteriorDensityDraws))
-    }
-    par = c(list(x=postEffSizeSorted),par)
-    
-    postDensValues = postDens(postEffSizeSorted)/do.call(FUN, par) # user defined reference function
-  } else { # no reference function provided, then use flat improper prior as reference function
-    postDensValues = postDens(postEffSizeSorted)/1 # flat reference function
+fbet <- function(posteriorDensityDraws=NULL, interval, nu=1, FUN=NULL, par=NULL, posterior=NULL, par_posterior=NULL){
+  if(is.null(posterior) && is.null(posteriorDensityDraws)){
+    stop("You must either provide the posteriorDensityDraws argument or the posterior argument!") 
+  }
+  if((!is.null(posterior)) && (!is.null(posteriorDensityDraws))){
+    stop("You must either provide the posteriorDensityDraws argument or the posterior argument, not both!") 
   }
   
-  if(nu==0 && is.null(FUN)){ # if flat ref function and nu == 0 the posterior is the surprise function
-    evidenceInterval = c(-Inf,Inf)
-    bayesianEvidenceValueIntervalNullHyp = cubintegrate(postDens, lower = interval[1], upper = interval[2])$integral
-    bayesianEvidenceValueAlternative = 1-bayesianEvidenceValueIntervalNullHyp
-    indices = "All"
-    # rounding errors
-    if(bayesianEvidenceValueIntervalNullHyp > 1){
-      bayesianEvidenceValueIntervalNullHyp = 1
-    }
-    if(bayesianEvidenceValueAlternative > 1){
-      bayesianEvidenceValueAlternative = 1
-    }
-  } else {
-    # Compute indices of posterior parameter draws which belong to the expanded tangential set \tilde{T}(\nu)
-    indices = which(postDensValues >= nu)
+  if(is.null(posterior)){ # posterior draws provided as input
+    # Sort posterior draws ascending
+    postEffSizeSorted = sort(posteriorDensityDraws, decreasing = FALSE)
+    # Construct density of posterior effect size
+    postDens <- approxfun(density(postEffSizeSorted), rule = 2) # rule = 2 means: use closest data extreme for NA values produced
     
-    # Get smallest and largest values as the boundaries of the evidence interval
-    if(length(indices)>0){
-      evidenceInterval = c(postEffSizeSorted[min(indices)],postEffSizeSorted[max(indices)])
-    } else { # expanded tangential set is empty
-      evidenceInterval = "Empty set"
+    # Calculate surprise function values for all posterior effect size samples
+    if(!is.null(FUN)){ # reference function provided
+      for(i in 1:length(par)){
+        par[[i]] = rep(par[[i]],length(posteriorDensityDraws))
+      }
+      par = c(list(x=postEffSizeSorted),par)
+      
+      postDensValues = postDens(postEffSizeSorted)/do.call(FUN, par) # user defined reference function
+    } else { # no reference function provided, then use flat improper prior as reference function
+      postDensValues = postDens(postEffSizeSorted)/1 # flat reference function
     }
     
-    if(!inherits(evidenceInterval, "character")){ # evidence interval is not the empty set? then compute Bayesian evidence values
-      # Calculate the Bayesian evidence value for the interval null hypothesis
-      if (length(indices)>0 && max(evidenceInterval[1],interval[1])<min(evidenceInterval[2],interval[2])){ # is there at least one posterior density value in the expanded tangential set?
-        # integrate over intersection between the evidence interval and rope, indices [1] and [2] denote the lower and upper bounds of the evidence interval and rope
-        bayesianEvidenceValueIntervalNullHyp = cubintegrate(postDens, lower = max(evidenceInterval[1],interval[1]), upper = min(evidenceInterval[2],interval[2]))$integral
-      } else { # expanded tangential set is empty, Lebesgue-integral over an empty set is zero then
-        bayesianEvidenceValueIntervalNullHyp = 0
-      }
-      # Calculate the Bayesian evidence value for the alternative hypothesis
-      bayesianEvidenceValueAlternative = 0
-      if(evidenceInterval[1]<interval[1] && evidenceInterval[2]<interval[1]){
-        # intersection of Bayesian evidence interval and alternative hypothesis (left part)
-        from.z <- evidenceInterval[1]
-        to.z <- evidenceInterval[2]
-        
-        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
-      }
-      
-      if(evidenceInterval[1]>interval[2] && evidenceInterval[2]>interval[2]){
-        # intersection of Bayesian evidence interval and alternative hypothesis (right part)
-        from.z <- evidenceInterval[1]
-        to.z <- evidenceInterval[2]
-        
-        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
-      }
-      
-      if(evidenceInterval[1]<interval[1] && evidenceInterval[2]>interval[1]){
-        # intersection of Bayesian evidence interval and alternative hypothesis (right part)
-        from.z <- evidenceInterval[1]
-        to.z <- interval[1]
-        
-        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
-      }
-      
-      if(evidenceInterval[1]<interval[2] && evidenceInterval[2]>interval[2]){
-        # intersection of Bayesian evidence interval and alternative hypothesis (right part)
-        from.z <- interval[2]
-        to.z <- evidenceInterval[2]
-        
-        bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
-      }
-      
+    if(nu==0 && is.null(FUN)){ # if flat ref function and nu == 0 the posterior is the surprise function
+      evidenceInterval = c(-Inf,Inf)
+      bayesianEvidenceValueIntervalNullHyp = cubintegrate(postDens, lower = interval[1], upper = interval[2])$integral
+      bayesianEvidenceValueAlternative = 1-bayesianEvidenceValueIntervalNullHyp
+      indices = "All"
       # rounding errors
       if(bayesianEvidenceValueIntervalNullHyp > 1){
         bayesianEvidenceValueIntervalNullHyp = 1
@@ -274,32 +222,109 @@ fbet <- function(posteriorDensityDraws, interval, nu=1, FUN=NULL, par=NULL){
       if(bayesianEvidenceValueAlternative > 1){
         bayesianEvidenceValueAlternative = 1
       }
-    } else { # if evidence interval is empty, set Bayesian evidence values accordingly
-      bayesianEvidenceValueIntervalNullHyp = 0
-      bayesianEvidenceValueAlternative = 0
+    } else {
+      # Compute indices of posterior parameter draws which belong to the expanded tangential set \tilde{T}(\nu)
+      indices = which(postDensValues >= nu)
+      
+      # Get smallest and largest values as the boundaries of the evidence interval
+      if(length(indices)>0){
+        evidenceInterval = c(postEffSizeSorted[min(indices)],postEffSizeSorted[max(indices)])
+      } else { # expanded tangential set is empty
+        evidenceInterval = "Empty set"
+      }
+      
+      if(!inherits(evidenceInterval, "character")){ # evidence interval is not the empty set? then compute Bayesian evidence values
+        # Calculate the Bayesian evidence value for the interval null hypothesis
+        if (length(indices)>0 && max(evidenceInterval[1],interval[1])<min(evidenceInterval[2],interval[2])){ # is there at least one posterior density value in the expanded tangential set?
+          # integrate over intersection between the evidence interval and rope, indices [1] and [2] denote the lower and upper bounds of the evidence interval and rope
+          bayesianEvidenceValueIntervalNullHyp = cubintegrate(postDens, lower = max(evidenceInterval[1],interval[1]), upper = min(evidenceInterval[2],interval[2]))$integral
+        } else { # expanded tangential set is empty, Lebesgue-integral over an empty set is zero then
+          bayesianEvidenceValueIntervalNullHyp = 0
+        }
+        # Calculate the Bayesian evidence value for the alternative hypothesis
+        bayesianEvidenceValueAlternative = 0
+        if(evidenceInterval[1]<interval[1] && evidenceInterval[2]<interval[1]){
+          # intersection of Bayesian evidence interval and alternative hypothesis (left part)
+          from.z <- evidenceInterval[1]
+          to.z <- evidenceInterval[2]
+          
+          bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
+        }
+        
+        if(evidenceInterval[1]>interval[2] && evidenceInterval[2]>interval[2]){
+          # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+          from.z <- evidenceInterval[1]
+          to.z <- evidenceInterval[2]
+          
+          bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
+        }
+        
+        if(evidenceInterval[1]<interval[1] && evidenceInterval[2]>interval[1]){
+          # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+          from.z <- evidenceInterval[1]
+          to.z <- interval[1]
+          
+          bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
+        }
+        
+        if(evidenceInterval[1]<interval[2] && evidenceInterval[2]>interval[2]){
+          # intersection of Bayesian evidence interval and alternative hypothesis (right part)
+          from.z <- interval[2]
+          to.z <- evidenceInterval[2]
+          
+          bayesianEvidenceValueAlternative = bayesianEvidenceValueAlternative + cubintegrate(postDens, lower = from.z, upper = to.z)$integral
+        }
+        
+        # rounding errors
+        if(bayesianEvidenceValueIntervalNullHyp > 1){
+          bayesianEvidenceValueIntervalNullHyp = 1
+        }
+        if(bayesianEvidenceValueAlternative > 1){
+          bayesianEvidenceValueAlternative = 1
+        }
+      } else { # if evidence interval is empty, set Bayesian evidence values accordingly
+        bayesianEvidenceValueIntervalNullHyp = 0
+        bayesianEvidenceValueAlternative = 0
+      }
     }
+    if (is.null(FUN)){
+      refString = "Flat"
+    } else {
+      refString = "User-defined"
+    }
+    
+    res = new("fbet", data=list(
+      posteriorDensityDraws = posteriorDensityDraws,
+      posteriorDensityDrawsSorted = postEffSizeSorted,
+      postDensValues = postDensValues,
+      indices = indices,
+      interval = interval,
+      referenceFunction = refString,
+      nu = nu,
+      evidenceInterval = evidenceInterval, 
+      eValueH0 = bayesianEvidenceValueIntervalNullHyp,
+      eValueH1 = bayesianEvidenceValueAlternative))
   }
-  
-  
-  
-  
-  if (is.null(FUN)){
-    refString = "Flat"
-  } else {
-    refString = "User-defined"
+  if(is.null(posteriorDensityDraws)){ # calculation of FBET based on analytic posterior
+    integrand <- function(x){
+      par_posterior = c(x=x,par_posterior)
+      numerator = do.call(posterior,par_posterior)
+      par = c(x=x,par)
+      denominator = do.call(FUN,par)
+      if(numerator/denominator >= nu){
+        res = numerator
+      }
+      else {
+        res = 0
+      }
+      res
+    }
+    
+    # integrate over null Hypothesis Interval
+    EvH0 = cubintegrate(integrand,lower=interval[1],upper=interval[2])
+    #cat("Evidence for the hypothesis specified inside interval argument:\n")
+    res = EvH0$integral
   }
-  
-  res = new("fbet", data=list(
-    posteriorDensityDraws = posteriorDensityDraws,
-    posteriorDensityDrawsSorted = postEffSizeSorted,
-    postDensValues = postDensValues,
-    indices = indices,
-    interval = interval,
-    referenceFunction = refString,
-    nu = nu,
-    evidenceInterval = evidenceInterval, 
-    eValueH0 = bayesianEvidenceValueIntervalNullHyp,
-    eValueH1 = bayesianEvidenceValueAlternative))
   res
 }
 
@@ -335,12 +360,21 @@ setClass("fbet", representation(data="list"),
 #' plot object of class fbst
 #' @usage \\method{plot}{fbst}(x, ...)
 #' @export
-plot.fbst <- function(x, ..., leftBoundary= -100, rightBoundary = 100, type = "contour", parNames = NULL){
+plot.fbst <- function(x, ..., leftBoundary= -100, rightBoundary = 100, type = "contour", parNames = NULL, xlimleft = NULL, xlimright = NULL, xlabString = "Parameter", ylabString = NULL){
   if(inherits(x$posteriorDensityDraws, "numeric")){
     postDens <- approxfun(x=x$postEffSizeSorted,y=x$postDensValues, rule = 2)
     # prior-posterior plot
-    plot(x$postEffSizeSorted,x$postDensValues,ty="l",lty=1,xlim=c(min(x$postEffSizeSorted),max(x$postEffSizeSorted)),
-         main="",ylab="density",xlab="Parameter")
+    if(is.null(xlimleft)){
+      xlimleft = min(x$postEffSizeSorted)
+    }
+    if(is.null(xlimright)){
+      xlimright = max(x$postEffSizeSorted)
+    }
+    if(is.null(ylabString)){
+      ylabString = "density"
+    }
+    plot(x$postEffSizeSorted,x$postDensValues,ty="l",lty=1,xlim=c(xlimleft,xlimright),
+         main="",ylab=ylabString,xlab=xlabString)
     
     # tangential area
     from.z <- x$postEffSizeSorted[min(x$indices)]
@@ -494,7 +528,7 @@ plot.fbet <- function(x, ..., leftBoundary= -100, rightBoundary = 100, type = "p
     # separating line for evidence-threshold nu used for the Bayesian evidence interval
     abline(h=x$nu,lty=2,lwd=1,col="black")
     
-    graphics::legend(legendposition, legend=c("surprise function density", "Null hypothesis", "Evidence Interval", "Evidence threshold"),
+    graphics::legend(legendposition, legend=c("information function", "Null hypothesis", "Evidence Interval", "Evidence threshold"),
                      col=c("black", "blue", "blue", "black"), lty=c(1,2,1,2), cex=1)
   }
   if(type=="posterior"){
@@ -589,7 +623,10 @@ names.fbet <- function(x){
   names(x@data)
 }
 
-
+#' Compute the Bayesian discrepancy measure (BDM)
+#' @method 
+#' @export
+#' @examples
 bdm <- function(posteriorDensityDraws, nullHypothesisValue=0){
   # Step 1: Compute median of posterior draws
   m=stats::median(posteriorDensityDraws)

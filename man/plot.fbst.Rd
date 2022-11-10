@@ -9,7 +9,8 @@ plot.fbst
 Plots the results of a Full Bayesian Significance Test.
 }
 \usage{
-\method{plot}{fbst}(x, ..., leftBoundary = -100, rightBoundary = 100, type = "contour", parNames = NULL)
+\method{plot}{fbst}(x, ..., leftBoundary = -100, rightBoundary = 100, type = "contour", parNames = NULL, 
+xlimleft = NULL, xlimright = NULL, xlabString = "Parameter", ylabString = NULL)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -30,6 +31,18 @@ Plots the results of a Full Bayesian Significance Test.
   }
   \item{parNames}{
     Vector of two entries which specifies the names for the parameters. Only relevant if dimensionTheta=2.
+  }
+  \item{xlimleft}{
+    The left value for the x-axis range for the plot. Defaults to the minimum value provided in the posterior draws stored in the FBST object.  
+  }
+  \item{xlimright}{
+    The right value for the x-axis range for the plot. Defaults to the maximum value provided in the posterior draws stored in the FBST object.
+  }
+  \item{xlabString}{
+    String for the x-axis label. Defaults to "Parameter".
+  }
+  \item{ylabString}{
+    String for the y-axis label. Default to "density".
   }
 }
 \details{
@@ -65,6 +78,7 @@ p = as.vector(BayesFactor::ttestBF(x=grp1,y=grp2,
 res = fbst(posteriorDensityDraws = p, nullHypothesisValue = 0, 
 dimensionTheta = 2, dimensionNullset = 1)
 plot(res)
+plot(res, xlimleft = -1.5, xlimright = 0.5)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
