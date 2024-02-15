@@ -103,7 +103,7 @@ fbst <- function(posteriorDensityDraws, nullHypothesisValue=0, FUN=NULL, par=NUL
     
     # Compute p-values for Bayesian evidence value in support of $H_0$
     m_0 = postDens(nullHypothesisValue)
-    M_0 = bayestestR::map_estimate(postEffSizeSorted)[1]
+    M_0 = bayestestR::map_estimate(postEffSizeSorted)$MAP_Estimate
     d_0 = abs((m_0-M_0)^2)
     # WARNING: The solution given in the 2008 paper is wrong. ev can be approximated as the upper tail of the 
     # cumulative chi_k^2 distribution function starting from ||m-M||^2

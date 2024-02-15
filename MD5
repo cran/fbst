@@ -1,8 +1,8 @@
-41e70a9da1413a534a322a00dae93022 *DESCRIPTION
+045b8e6199f2f8aa26550f4eb365d445 *DESCRIPTION
 478b95c34677449bd5d482f9ea83eb99 *NAMESPACE
-e495299f6a5e601f020fcfcc76b5966a *R/fbst.R
-14ff1fcf757900235339e5c6c48f2913 *build/partial.rdb
-80bd7899f16fa133b2e23df71d64f457 *build/vignette.rds
+2f309403893ba11ff190fb69443800f2 *R/fbst.R
+1d7354b8ac66221460292a6f9cf11d78 *build/partial.rdb
+bcf4147193f201b499a3438a2af2fcf6 *build/vignette.rds
 105f0ba6d7a96148306d5a33b8d0f2f4 *inst/doc/fbet.R
 3906d7af2f63b823fde571985daaac8a *inst/doc/fbet.Rmd
 1c08f4de9932818ac2d643400bd4c07c *inst/doc/fbet.html
@@ -11,7 +11,7 @@ ebc94828fd58520f422c982202ae8a01 *inst/doc/fbst.Rmd
 304003294121a717dc3a3be610f7aadb *inst/doc/fbst.html
 9fd97a01a1e7573147f22c7dded986f7 *inst/doc/twodimfbst.R
 e0b78f0bba73be046cd45fbc3e06fb2a *inst/doc/twodimfbst.Rmd
-deedd9a14496ccb91aaad54bbe552fbe *inst/doc/twodimfbst.html
+ef4d55c95810024ce6f73d41e55685ae *inst/doc/twodimfbst.html
 d32abe7056ddc09f2573470af5172ef5 *man/access.Rd
 090dae478d4fe78096d884b23a499d2f *man/access_fbet.Rd
 33f5ba93c77edb1d13e1d431a91e3d5c *man/bdm.Rd
